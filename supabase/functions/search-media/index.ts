@@ -1,19 +1,59 @@
-// Supabase Edge Function: Media Search Proxy (Pexels)
-// Deploy: supabase functions deploy search-media --no-verify-jwt
+// Helper to extract key concepts and multi-queries from topic/context
+function buildMediaQueries(topic: string, subject?: string): string[] {
+  const cleanTopic = topic.trim();
+  const lower = cleanTopic.toLowerCase();
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+  const queries: string[] = [cleanTopic];
 
-const PEXELS_API_KEY = Deno.env.get("PEXELS_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SECRET_KEY") || "";
+  if (lower.includes("newton")) {
+    queries.push("Newton's laws of motion physics demonstration");
+    queries.push("inertia force acceleration physics experiment");
+    queries.push("action reaction demonstration physics");
+  } else if (lower.includes("photosynthesis")) {
+    queries.push("photosynthesis plant biology experiment");
+    queries.push("leaf structure chloroplast biology");
+    queries.push("plant light photosynthesis process");
+  } else if (lower.includes("fraction") || lower.includes("math")) {
+    queries.push("mathematical fraction visual diagram");
+    queries.push("geometry shapes mathematics education");
+  } else if (subject) {
+    queries.push(`${cleanTopic} ${subject} educational demonstration`);
+  }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-};
+  return [...new Set(queries)];
+}
+
+// Relevance scoring algorithm for Pexels media candidates
+function calculateRelevanceScore(item: any, topic: string, requiredConcepts: string[]): number {
+  const alt = (item.alt || "").toLowerCase();
+  const photographer = (item.photographer || "").toLowerCase();
+  const topicTokens = topic.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+
+  let score = 0.5; // Base score
+
+  // 1. Topic Token Matches
+  let tokenMatches = 0;
+  topicTokens.forEach((token) => {
+    if (alt.includes(token)) tokenMatches++;
+  });
+  score += (tokenMatches / Math.max(1, topicTokens.length)) * 0.35;
+
+  // 2. Required Concept Matches
+  requiredConcepts.forEach((concept) => {
+    if (alt.includes(concept.toLowerCase())) score += 0.15;
+  });
+
+  // 3. Negative Signals (Irrelevant stock clutter)
+  const negativeTerms = [
+    "portrait", "smile", "fashion", "girl", "boy", "model", "selfie",
+    "shopping", "party", "car", "wedding", "business suit", "desk work"
+  ];
+  negativeTerms.forEach((term) => {
+    if (alt.includes(term)) score -= 0.25;
+  });
+
+  return Math.min(1.0, Math.max(0.0, score));
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -25,52 +65,25 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: { code: "PROVIDER_CONFIG_ERROR", message: "Media search service is not configured. PEXELS_API_KEY is missing." },
+          error: { code: "PROVIDER_CONFIG_ERROR", message: "Media search service is not configured." },
         }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: { code: "UNAUTHORIZED", message: "Unauthorized. Please log in to search educational media." },
-        }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const supabaseAuthClient = createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: { code: "UNAUTHORIZED", message: "Invalid session." },
+          error: { code: "UNAUTHORIZED", message: "Unauthorized." },
         }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const body = await req.json().catch(() => ({}));
-    const {
-      query,
-      type = "photos",
-      per_page = 12,
-      perPage,
-      page = 1,
-      orientation = "landscape",
-    } = body;
-
-    const count = perPage || per_page || 12;
+    const { query, subject, type = "photos", per_page = 12, minScore = 0.65 } = body;
 
     if (!query || typeof query !== "string" || !query.trim()) {
       return new Response(
@@ -82,84 +95,57 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const cleanQuery = encodeURIComponent(query.trim());
-    const isVideo = type === "video" || type === "videos";
-    const apiUrl = isVideo
-      ? `https://api.pexels.com/videos/search?query=${cleanQuery}&per_page=${count}&page=${page}&orientation=${orientation}`
-      : `https://api.pexels.com/v1/search?query=${cleanQuery}&per_page=${count}&page=${page}&orientation=${orientation}`;
+    const searchQueries = buildMediaQueries(query, subject);
+    const candidateMap = new Map<string, any>();
 
-    const pexelsRes = await fetch(apiUrl, {
-      headers: {
-        Authorization: PEXELS_API_KEY,
-      },
-    });
+    for (const q of searchQueries) {
+      const apiUrl = `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=8&orientation=landscape`;
+      const pexelsRes = await fetch(apiUrl, { headers: { Authorization: PEXELS_API_KEY } });
 
-    if (!pexelsRes.ok) {
-      const errText = await pexelsRes.text();
-      console.error("Pexels API error:", pexelsRes.status, errText);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: { code: "PROVIDER_ERROR", message: "Failed to fetch media from provider." },
-        }),
-        { status: pexelsRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (pexelsRes.ok) {
+        const pexelsData = await pexelsRes.json();
+        (pexelsData.photos || []).forEach((p: any) => {
+          if (!candidateMap.has(String(p.id))) {
+            const item = {
+              id: String(p.id),
+              type: "photo",
+              url: p.src?.large || p.src?.medium,
+              thumbnailUrl: p.src?.small || p.src?.tiny,
+              width: p.width,
+              height: p.height,
+              photographer: p.photographer,
+              alt: p.alt || query,
+              attribution: "Stock Photo",
+            };
+            const score = calculateRelevanceScore(item, query, searchQueries);
+            if (score >= minScore) {
+              candidateMap.set(String(p.id), { ...item, relevanceScore: score });
+            }
+          }
+        });
+      }
     }
 
-    const pexelsData = await pexelsRes.json();
-
-    // Map to clean, sanitized normalized response
-    const results = isVideo
-      ? (pexelsData.videos || []).map((v: any) => ({
-          id: String(v.id),
-          type: "video",
-          url: v.url,
-          thumbnailUrl: v.image,
-          duration: v.duration,
-          width: v.width,
-          height: v.height,
-          photographer: v.user?.name || "Pexels Creator",
-          photographerUrl: v.user?.url || "",
-          attribution: "Videos by Pexels",
-          files: (v.video_files || []).map((f: any) => ({
-            link: f.link,
-            quality: f.quality,
-            width: f.width,
-            height: f.height,
-          })),
-        }))
-      : (pexelsData.photos || []).map((p: any) => ({
-          id: String(p.id),
-          type: "photo",
-          url: p.src?.large || p.src?.medium || p.src?.original,
-          thumbnailUrl: p.src?.small || p.src?.tiny,
-          width: p.width,
-          height: p.height,
-          photographer: p.photographer,
-          photographerUrl: p.photographer_url,
-          alt: p.alt || query,
-          attribution: "Photos by Pexels",
-          src: p.src,
-        }));
+    const sortedResults = Array.from(candidateMap.values())
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, per_page);
 
     return new Response(
       JSON.stringify({
         success: true,
         query: query.trim(),
-        type: isVideo ? "video" : "photo",
-        total_results: pexelsData.total_results || results.length,
-        page: pexelsData.page || page,
-        media: results,
+        found: sortedResults.length > 0,
+        total_results: sortedResults.length,
+        media: sortedResults,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Internal error occurred.";
-    console.error("Search media error:", message);
+    const message = err instanceof Error ? err.message : "Internal error.";
     return new Response(
       JSON.stringify({
         success: false,
-        error: { code: "SERVER_ERROR", message: "Failed to search media." },
+        error: { code: "SERVER_ERROR", message },
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

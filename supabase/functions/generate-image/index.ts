@@ -80,31 +80,87 @@ function sanitizeSearchQuery(query: string): string {
   return cleaned || query;
 }
 
-// Search Pexels for stock photos
-async function searchPexels(query: string, perPage: number = 6) {
+// Relevance scoring algorithm for educational Pexels photos
+function scorePhotoRelevance(photo: any, topic: string, requiredTerms: string[]): number {
+  const alt = (photo.alt || "").toLowerCase();
+  const lowerTopic = topic.toLowerCase();
+  const topicTokens = lowerTopic.split(/\s+/).filter((t) => t.length > 2);
+
+  let score = 0.5;
+
+  let matches = 0;
+  topicTokens.forEach((token) => {
+    if (alt.includes(token)) matches++;
+  });
+  score += (matches / Math.max(1, topicTokens.length)) * 0.35;
+
+  requiredTerms.forEach((term) => {
+    if (alt.includes(term.toLowerCase())) score += 0.15;
+  });
+
+  const negativeTerms = [
+    "portrait", "smile", "fashion", "girl", "boy", "model", "selfie",
+    "shopping", "party", "car", "wedding", "business suit"
+  ];
+  negativeTerms.forEach((term) => {
+    if (alt.includes(term)) score -= 0.25;
+  });
+
+  return Math.min(1.0, Math.max(0.0, score));
+}
+
+// Search Pexels for stock photos using multi-query strategy & relevance threshold
+async function searchPexels(query: string, perPage: number = 6, minScore: number = 0.65) {
   if (!PEXELS_API_KEY || !query) return [];
   try {
     const cleaned = sanitizeSearchQuery(query);
-    const cleanQuery = encodeURIComponent(cleaned);
-    const res = await fetch(
-      `https://api.pexels.com/v1/search?query=${cleanQuery}&per_page=${perPage}&orientation=landscape`,
-      { headers: { Authorization: PEXELS_API_KEY } }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.photos || []).map((p: any) => ({
-      id: String(p.id),
-      type: "photo",
-      url: p.src?.large || p.src?.medium || p.src?.original,
-      thumbnailUrl: p.src?.small || p.src?.tiny,
-      width: p.width,
-      height: p.height,
-      photographer: p.photographer,
-      photographerUrl: p.photographer_url,
-      alt: p.alt || query,
-      attribution: "Photos by Pexels",
-      source: "stock",
-    }));
+    const subQueries = [cleaned];
+
+    if (cleaned.toLowerCase().includes("newton")) {
+      subQueries.push("Newton's laws of motion physics demonstration");
+      subQueries.push("inertia force acceleration physics experiment");
+    } else if (cleaned.toLowerCase().includes("photosynthesis")) {
+      subQueries.push("photosynthesis plant biology experiment");
+      subQueries.push("leaf structure chloroplast biology");
+    }
+
+    const candidateMap = new Map<string, any>();
+
+    for (const q of subQueries) {
+      const cleanQuery = encodeURIComponent(q);
+      const res = await fetch(
+        `https://api.pexels.com/v1/search?query=${cleanQuery}&per_page=8&orientation=landscape`,
+        { headers: { Authorization: PEXELS_API_KEY } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        (data.photos || []).forEach((p: any) => {
+          if (!candidateMap.has(String(p.id))) {
+            const item = {
+              id: String(p.id),
+              type: "photo",
+              url: p.src?.large || p.src?.medium || p.src?.original,
+              thumbnailUrl: p.src?.small || p.src?.tiny,
+              width: p.width,
+              height: p.height,
+              photographer: p.photographer,
+              photographerUrl: p.photographer_url,
+              alt: p.alt || query,
+              attribution: "Stock Photo",
+              source: "stock",
+            };
+            const score = scorePhotoRelevance(item, query, subQueries);
+            if (score >= minScore) {
+              candidateMap.set(String(p.id), { ...item, relevanceScore: score });
+            }
+          }
+        });
+      }
+    }
+
+    return Array.from(candidateMap.values())
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, perPage);
   } catch (err) {
     console.warn("Pexels search error:", err);
     return [];
