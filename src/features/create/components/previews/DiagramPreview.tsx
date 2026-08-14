@@ -480,7 +480,7 @@ function AiVisualSection({
         {!isGenerating && !imageUrl && stockMedia.length === 0 && (
           <div className="space-y-3">
             <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
-              Generate an AI visual to illustrate this concept. The actual educational image will be created by Pollinations AI and displayed here — not a CSS or HTML placeholder.
+              Generate an AI visual to illustrate this concept. The actual educational image will be created by Teachora Visual AI and displayed here — not a CSS or HTML placeholder.
             </p>
             <button
               type="button"

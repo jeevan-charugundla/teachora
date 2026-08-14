@@ -613,7 +613,7 @@ export function AssistantPage() {
                 ) : (
                   <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-50)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-primary-700)]">
                     <Sparkles className="h-2.5 w-2.5 text-[var(--color-accent-500)]" />
-                    Groq Llama 3.3
+                    Teachora Intelligence
                   </span>
                 )}
               </div>
@@ -1020,7 +1020,7 @@ export function AssistantPage() {
             <p className="mt-1 text-center text-[10px] text-[var(--color-text-tertiary)]">
               {activeDocument
                 ? `Grounded Q&A enabled for ${activeDocument.fileName}. Answers are strictly derived from document text.`
-                : `Teachora AI powered by Groq. Tailored for ${activeSubject} • ${activeGrade}.`}
+                : `Teachora AI Engine. Tailored for ${activeSubject} • ${activeGrade}.`}
             </p>
           </div>
         </div>

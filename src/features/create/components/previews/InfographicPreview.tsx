@@ -114,7 +114,7 @@ export function InfographicPreview({ data }: InfographicPreviewProps) {
                   ? 'bg-purple-100 text-purple-800'
                   : 'bg-blue-100 text-blue-800'
               }`}>
-                {visualData.source === 'ai' || visualData.provider === 'pollinations' ? 'AI Generated' : 'Photos by Pexels'}
+                {visualData.source === 'ai' || visualData.provider === 'pollinations' ? 'AI Generated' : 'Stock Photo'}
               </span>
             </div>
             <button

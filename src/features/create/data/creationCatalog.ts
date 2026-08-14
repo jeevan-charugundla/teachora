@@ -178,7 +178,7 @@ export function getInitialFormState(type: CreationType, defaultSubject = 'Scienc
     videoNarrationStyle: 'Conversational',
     videoVisualStyle: 'Diagrams',
     videoIncludes: ['Narration script', 'Scene breakdown', 'On-screen text', 'Visual suggestions'],
-    videoVisualSource: 'Stock (Pexels)',
+    videoVisualSource: 'Stock Library',
 
     // Assignment
     assignmentTitle: '',

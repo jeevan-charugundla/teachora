@@ -86,7 +86,7 @@ export interface CreationFormState {
   videoNarrationStyle: 'Formal' | 'Conversational' | 'Step-by-step' | 'Question-led';
   videoVisualStyle: 'Animated' | 'Live footage' | 'Diagrams' | 'Mixed';
   videoIncludes: string[];
-  videoVisualSource: 'Stock (Pexels)' | 'AI (Pollinations)' | 'Auto';
+  videoVisualSource: 'Stock Library' | 'Teachora Visual AI' | 'Auto';
 
   // ── Assignment ───────────────────────────────────────────────────────────────
   assignmentTitle: string;

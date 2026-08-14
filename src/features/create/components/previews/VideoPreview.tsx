@@ -68,7 +68,7 @@ export function VideoPreview({ data }: VideoPreviewProps) {
                     <span className="flex items-center gap-1">
                       <PlayCircle className="h-3.5 w-3.5 text-indigo-600" /> Suggested B-Roll Footage Clips
                     </span>
-                    <span className="text-[10px] text-slate-500 font-normal">Videos by Pexels</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Stock Video Clips</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {scene.videoSuggestions.map((clip: any, cIdx: number) => (

@@ -115,7 +115,7 @@ export function PresentationPreview({ data }: PresentationPreviewProps) {
               <div className="flex items-center gap-2">
                 {currentSlide.mediaSuggestions && currentSlide.mediaSuggestions.length > 0 && (
                   <span className="text-[10px] text-[var(--color-text-tertiary)] font-medium">
-                    {currentSlide.mediaSuggestions[0]?.attribution || 'Photos by Pexels'}
+                    {currentSlide.mediaSuggestions[0]?.attribution || 'Stock Library'}
                   </span>
                 )}
                 <button
@@ -134,7 +134,7 @@ export function PresentationPreview({ data }: PresentationPreviewProps) {
                           url: res.image.url,
                           thumbnailUrl: res.image.url,
                           alt: res.image.prompt,
-                          photographer: 'Pollinations AI',
+                          photographer: 'Teachora Visual AI',
                           attribution: 'AI Generated',
                         },
                       ];
@@ -158,7 +158,7 @@ export function PresentationPreview({ data }: PresentationPreviewProps) {
                       loading="lazy"
                     />
                     <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] p-1 truncate flex items-center justify-between">
-                      <span>{photo.photographer || 'Pexels'}</span>
+                      <span>{photo.photographer || 'Stock Photo'}</span>
                       <span className="text-[8px] opacity-80">{photo.attribution || 'Stock'}</span>
                     </div>
                   </div>

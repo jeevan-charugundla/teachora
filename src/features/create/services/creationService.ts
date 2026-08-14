@@ -78,7 +78,7 @@ export class CreationService {
       }
 
       // Step 2: Content generation via Groq
-      onProgress?.(2, 'Generating structured classroom material with Groq AI…');
+      onProgress?.(2, 'Generating structured classroom material with Teachora AI…');
 
       const response = await supabase.functions.invoke('generate-content', {
         body: {

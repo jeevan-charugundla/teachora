@@ -272,7 +272,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
       const styles = ['Explainer', 'Story-based', 'Whiteboard', 'Presentation', 'Animated concept'];
       const narrationStyles = ['Formal', 'Conversational', 'Step-by-step', 'Question-led'];
       const visualStyles = ['Animated', 'Live footage', 'Diagrams', 'Mixed'];
-      const visualSources = ['Stock (Pexels)', 'AI (Pollinations)', 'Auto'];
+      const visualSources = ['Stock Library', 'Teachora Visual AI', 'Auto'];
       const inclusions = ['Narration script', 'Scene breakdown', 'On-screen text', 'Visual suggestions', 'Teacher notes', 'Timestamps'];
 
       return (
