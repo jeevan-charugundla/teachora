@@ -83,9 +83,17 @@ export function LoginPage() {
         </div>
 
         <div>
-          <label htmlFor="login-password" className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
-            Password
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="login-password" className="block text-sm font-medium text-[var(--color-text-primary)]">
+              Password
+            </label>
+            <Link
+              to="/forgot-password"
+              className="text-xs font-semibold text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <div className="relative">
             <input
               id="login-password"
@@ -108,15 +116,6 @@ export function LoginPage() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-        </div>
-
-        <div className="flex items-center justify-end">
-          <Link
-            to="/forgot-password"
-            className="text-sm font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
-          >
-            Forgot password?
-          </Link>
         </div>
 
         <button

@@ -1,16 +1,19 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Logo } from '@/components/common/Logo';
 import { useAuthStore } from '@/stores/authStore';
 import { APP_TAGLINE } from '@/lib/constants';
 
 export function AuthLayout() {
-  const { user, isInitialized, isLoading } = useAuthStore();
+  const { user, isInitialized, isLoading, isPasswordRecovery } = useAuthStore();
+  const location = useLocation();
 
   if (!isInitialized || isLoading) {
     return null;
   }
 
-  if (user) {
+  // Do not redirect to /app if user is accessing /reset-password or in recovery mode
+  const isResetPasswordRoute = location.pathname === '/reset-password';
+  if (user && !isResetPasswordRoute && !isPasswordRecovery) {
     return <Navigate to="/app" replace />;
   }
 

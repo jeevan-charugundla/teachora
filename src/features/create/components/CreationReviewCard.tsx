@@ -8,62 +8,248 @@ interface CreationReviewCardProps {
   onGenerate?: () => void;
 }
 
+const VISUAL_TYPES = ['diagram', 'mind-map', 'chart', 'infographic'] as const;
+
 export function CreationReviewCard({ form, meta, onEdit }: CreationReviewCardProps) {
+  const isVisualType = (VISUAL_TYPES as readonly string[]).includes(form.type);
+
   const getSummaryItems = () => {
+    // ── Common baseline (shared by all types) ──────────────────────────────────
     const items: Array<{ label: string; value: string | number }> = [
       { label: 'Subject', value: form.subject },
       { label: 'Grade Level', value: form.grade },
       { label: 'Topic', value: form.topic },
-      { label: 'Difficulty', value: form.difficulty },
-      { label: 'Language', value: form.language },
     ];
 
-    if (form.type === 'lesson') {
-      items.push({ label: 'Duration', value: form.duration });
-      items.push({ label: 'Teaching Style', value: form.teachingStyle });
-    } else if (form.type === 'notes') {
-      items.push({ label: 'Purpose', value: form.notesPurpose });
-      items.push({ label: 'Depth', value: form.notesDepth });
-    } else if (form.type === 'presentation') {
-      items.push({ label: 'Number of Slides', value: `${form.slideCount} Slides` });
-      items.push({ label: 'Visual Style', value: form.visualStyle });
-    } else if (form.type === 'video') {
-      items.push({ label: 'Target Duration', value: form.videoDuration });
-      items.push({ label: 'Video Style', value: form.videoStyle });
-    } else if (form.type === 'assignment' || form.type === 'worksheet') {
-      items.push({ label: 'Questions', value: form.questionCount });
-      items.push({ label: 'Total Marks', value: `${form.totalMarks} pts` });
-      items.push({ label: 'Question Types', value: form.questionTypes.join(', ') });
-    } else if (form.type === 'activity') {
-      items.push({ label: 'Activity Type', value: form.activityType });
-      items.push({ label: 'Duration', value: form.duration });
-    } else if (form.type === 'flashcards') {
-      items.push({ label: 'Card Count', value: `${form.flashcardCount} Cards` });
-      items.push({ label: 'Format', value: form.flashcardType });
-    } else if (form.type === 'quiz') {
-      items.push({ label: 'Time Limit', value: form.quizTimeLimit });
-    } else if (form.type === 'mock-test') {
-      items.push({ label: 'Duration', value: form.mockDuration });
-      items.push({ label: 'Marks', value: `${form.mockTotalMarks} pts` });
-      items.push({ label: 'Distribution', value: `Easy: ${form.easyPercentage}%, Med: ${form.mediumPercentage}%, Hard: ${form.hardPercentage}%` });
-    } else if (form.type === 'question-paper' || form.type === 'exam') {
-      items.push({ label: 'Exam Title', value: form.examName });
-      items.push({ label: 'Duration', value: form.examDuration });
-      items.push({ label: 'Sections', value: `${form.sections.length} Sections` });
-    } else if (form.type === 'chart') {
-      items.push({ label: 'Chart Type', value: `${form.chartType} Chart` });
-      items.push({ label: 'Data Points', value: `${form.chartData.length} entries` });
-    } else if (form.type === 'diagram') {
-      items.push({ label: 'Diagram Type', value: form.diagramType });
-      items.push({ label: 'Visual Style', value: form.diagramStyle });
-    } else if (form.type === 'mind-map') {
-      items.push({ label: 'Layout', value: form.mindMapLayout });
-      items.push({ label: 'Depth', value: form.mindMapDepth });
-    } else if (form.type === 'infographic') {
-      items.push({ label: 'Visual Style', value: form.infographicStyle });
-      items.push({ label: 'Sections', value: `${form.infographicSections.length} Sections` });
+    // Difficulty only for non-visual types
+    if (!isVisualType) {
+      items.push({ label: 'Difficulty', value: form.difficulty });
     }
 
+    items.push({ label: 'Language', value: form.language });
+
+    // ── Type-specific fields ───────────────────────────────────────────────────
+    switch (form.type) {
+      // ─ TEACH ─────────────────────────────────────────────────────────────────
+      case 'lesson':
+        items.push(
+          { label: 'Lesson Type', value: form.lessonType },
+          { label: 'Duration', value: form.duration },
+          { label: 'Teaching Approach', value: form.teachingStyle },
+        );
+        if (form.learningObjectives) {
+          items.push({ label: 'Objectives', value: form.learningObjectives });
+        }
+        if (form.lessonIncludes?.length) {
+          items.push({ label: 'Includes', value: form.lessonIncludes.join(', ') });
+        }
+        break;
+
+      case 'notes':
+        items.push(
+          { label: 'Purpose', value: form.notesPurpose },
+          { label: 'Depth', value: form.notesDepth },
+        );
+        if (form.notesIncludes?.length) {
+          items.push({ label: 'Includes', value: form.notesIncludes.join(', ') });
+        }
+        break;
+
+      case 'presentation':
+        items.push(
+          { label: 'Number of Slides', value: `${form.slideCount} Slides` },
+          { label: 'Presentation Purpose', value: form.presentationPurpose },
+          { label: 'Visual Style', value: form.visualStyle },
+          { label: 'Speaker Notes', value: form.presentationSpeakerNotes ? 'On' : 'Off' },
+          { label: 'Visual Source', value: form.presentationVisualSource },
+        );
+        if (form.presentationIncludes?.length) {
+          items.push({ label: 'Includes', value: form.presentationIncludes.join(', ') });
+        }
+        break;
+
+      case 'video':
+        items.push(
+          { label: 'Duration', value: form.videoDuration },
+          { label: 'Video Style', value: form.videoStyle },
+          { label: 'Narration Style', value: form.videoNarrationStyle },
+          { label: 'Visual Style', value: form.videoVisualStyle },
+          { label: 'Visual Source', value: form.videoVisualSource },
+        );
+        if (form.videoIncludes?.length) {
+          items.push({ label: 'Includes', value: form.videoIncludes.join(', ') });
+        }
+        break;
+
+      // ─ PRACTICE ──────────────────────────────────────────────────────────────
+      case 'assignment':
+        items.push(
+          { label: 'Assignment Type', value: form.assignmentType },
+          { label: 'Number of Questions', value: form.questionCount },
+          { label: 'Total Marks', value: `${form.totalMarks} pts` },
+          { label: 'Question Types', value: form.questionTypes.join(', ') },
+          { label: 'Rubric', value: form.assignmentIncludeRubric ? 'Included' : 'Not included' },
+          { label: 'Answer Key', value: form.assignmentIncludeAnswerKey ? 'Included' : 'Not included' },
+        );
+        break;
+
+      case 'worksheet':
+        items.push(
+          { label: 'Purpose', value: form.worksheetPurpose },
+          { label: 'Number of Questions', value: form.worksheetQuestionCount },
+          { label: 'Layout Style', value: form.worksheetStyle },
+          { label: 'Question Types', value: form.worksheetQuestionTypes.join(', ') },
+          { label: 'Answer Key', value: form.worksheetIncludeAnswerKey ? 'Included' : 'Not included' },
+        );
+        break;
+
+      case 'activity':
+        items.push(
+          { label: 'Activity Format', value: form.activityType },
+          { label: 'Activity Kind', value: form.activityKind },
+          { label: 'Duration', value: form.activityDuration },
+        );
+        if (form.activityObjective) {
+          items.push({ label: 'Teaching Objective', value: form.activityObjective });
+        }
+        if (form.activityIncludes?.length) {
+          items.push({ label: 'Includes', value: form.activityIncludes.join(', ') });
+        }
+        break;
+
+      case 'flashcards':
+        items.push(
+          { label: 'Number of Cards', value: `${form.flashcardCount} Cards` },
+          { label: 'Card Format', value: form.flashcardType },
+          { label: 'Difficulty', value: form.flashcardDifficulty },
+        );
+        if (form.flashcardIncludes?.length) {
+          items.push({ label: 'Add to Each Card', value: form.flashcardIncludes.join(', ') });
+        }
+        break;
+
+      // ─ ASSESS ────────────────────────────────────────────────────────────────
+      case 'quiz':
+        items.push(
+          { label: 'Number of Questions', value: form.quizQuestionCount },
+          { label: 'Question Types', value: form.quizQuestionTypes.join(', ') },
+          { label: 'Time Limit', value: form.quizTimeLimit },
+          { label: 'Include Explanations', value: form.quizIncludeExplanations ? 'Yes' : 'No' },
+          { label: 'Randomize Questions', value: form.quizRandomize ? 'Yes' : 'No' },
+        );
+        break;
+
+      case 'mock-test':
+        items.push(
+          { label: 'Duration', value: form.mockDuration },
+          { label: 'Total Marks', value: `${form.mockTotalMarks} pts` },
+          { label: 'Difficulty Distribution', value: `Easy ${form.easyPercentage}% / Med ${form.mediumPercentage}% / Hard ${form.hardPercentage}%` },
+          { label: 'Question Types', value: form.mockQuestionTypes.join(', ') },
+        );
+        if (form.mockIncludes?.length) {
+          items.push({ label: 'Includes', value: form.mockIncludes.join(', ') });
+        }
+        break;
+
+      case 'question-paper':
+        items.push(
+          { label: 'Paper Name', value: form.examName },
+          { label: 'Duration', value: form.examDuration },
+          { label: 'Total Marks', value: `${form.examTotalMarks} pts` },
+          { label: 'Sections', value: `${form.sections.length} Sections` },
+        );
+        if (form.sections.length > 0) {
+          items.push({ label: 'Section Breakdown', value: form.sections.map((s) => `${s.name} (${s.questionCount}Q × ${s.marksPerQuestion}m)`).join(' | ') });
+        }
+        break;
+
+      case 'exam':
+        items.push(
+          { label: 'Exam Name', value: form.examName },
+          { label: 'Duration', value: form.examDuration },
+          { label: 'Total Marks', value: `${form.examTotalMarks} pts` },
+          { label: 'Sections', value: `${form.sections.length} Sections` },
+        );
+        if (form.examIncludes?.length) {
+          items.push({ label: 'Includes', value: form.examIncludes.join(', ') });
+        }
+        break;
+
+      // ─ VISUALIZE ─────────────────────────────────────────────────────────────
+      case 'diagram':
+        items.push(
+          { label: 'Diagram Type', value: form.diagramType },
+          { label: 'Visual Style', value: form.diagramStyle },
+          { label: 'Orientation', value: form.diagramOrientation },
+          { label: 'Visual Method', value: form.diagramVisualMethod },
+          { label: 'Include Labels', value: form.diagramIncludeLabels ? 'Yes' : 'No' },
+          { label: 'Include Explanations', value: form.diagramIncludeExplanations ? 'Yes' : 'No' },
+        );
+        if (form.diagramGoal) {
+          items.push({ label: 'Explanation', value: form.diagramGoal });
+        }
+        if (form.diagramSpecificElements) {
+          items.push({ label: 'Elements', value: form.diagramSpecificElements });
+        }
+        break;
+
+      case 'mind-map':
+        items.push(
+          { label: 'Main Branches', value: form.mindMapBranchCount },
+          { label: 'Depth', value: form.mindMapDepth },
+          { label: 'Layout', value: form.mindMapLayout },
+          { label: 'Visual Style', value: form.mindMapStyle },
+        );
+        if (form.mindMapCentralTopic) {
+          items.push({ label: 'Central Topic', value: form.mindMapCentralTopic });
+        }
+        if (form.mindMapIncludes?.length) {
+          items.push({ label: 'Include in Nodes', value: form.mindMapIncludes.join(', ') });
+        }
+        break;
+
+      case 'chart':
+        items.push(
+          { label: 'Chart Type', value: `${form.chartType} Chart` },
+          { label: 'Data Source', value: form.chartHasData ? 'Teacher-provided data' : 'AI-generated data' },
+          { label: 'Show Values', value: form.chartShowValues ? 'Yes' : 'No' },
+          { label: 'Show Legend', value: form.chartShowLegend ? 'Yes' : 'No' },
+        );
+        if (form.chartPurpose) {
+          items.push({ label: 'Visualization', value: form.chartPurpose });
+        }
+        if (form.chartTitle) {
+          items.push({ label: 'Chart Title', value: form.chartTitle });
+        }
+        if (form.chartHasData) {
+          items.push({ label: 'Data Points', value: `${form.chartData.length} entries` });
+        }
+        if (form.chartXAxisLabel) {
+          items.push({ label: 'X-Axis', value: form.chartXAxisLabel });
+        }
+        if (form.chartYAxisLabel) {
+          items.push({ label: 'Y-Axis', value: form.chartYAxisLabel });
+        }
+        break;
+
+      case 'infographic':
+        items.push(
+          { label: 'Purpose', value: form.infographicPurpose },
+          { label: 'Orientation', value: form.infographicOrientation },
+          { label: 'Visual Style', value: form.infographicStyle },
+          { label: 'Number of Sections', value: form.infographicSectionCount },
+          { label: 'Visual Source', value: form.infographicVisualSource },
+        );
+        if (form.infographicGoal) {
+          items.push({ label: 'Explanation', value: form.infographicGoal });
+        }
+        if (form.infographicIncludes?.length) {
+          items.push({ label: 'Includes', value: form.infographicIncludes.join(', ') });
+        }
+        break;
+    }
+
+    // Additional instructions (all types)
     if (form.additionalInstructions) {
       items.push({ label: 'Additional Focus', value: form.additionalInstructions });
     }

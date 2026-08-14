@@ -153,6 +153,7 @@ export function getInitialFormState(type: CreationType, defaultSubject = 'Scienc
     duration: '45 min',
     learningObjectives: '',
     teachingStyle: 'Interactive',
+    lessonIncludes: ['Learning objectives', 'Key concepts', 'Teaching steps', 'Classroom activity', 'Assessment', 'Homework'],
     includeActivities: true,
     includeAssessment: true,
     includeHomework: true,

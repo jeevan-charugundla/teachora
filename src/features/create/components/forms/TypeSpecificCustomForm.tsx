@@ -82,6 +82,14 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
     onChange(key, updated as unknown as CreationFormState[keyof CreationFormState]);
   };
 
+  // Section header helper
+  const SectionHeader = ({ title, description }: { title: string; description: string }) => (
+    <div className="pb-4 border-b border-[var(--color-border)] mb-2">
+      <h3 className="text-sm font-bold text-[var(--color-text-primary)] mb-0.5">{title}</h3>
+      <p className="text-xs text-[var(--color-text-tertiary)]">{description}</p>
+    </div>
+  );
+
   switch (form.type) {
     // ═══════════════════════════════════════════════════════════════════════════
     // 1. LESSON
@@ -94,6 +102,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Lesson Configuration" description="Configure the structure, timing, and delivery approach for your lesson plan." />
           <ChipGroup
             label="Lesson Type"
             options={lessonTypes}
@@ -135,9 +144,18 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
               {inclusions.map((item) => (
                 <label
                   key={item}
-                  className="flex items-center gap-2 p-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-xs text-[var(--color-text-primary)] cursor-pointer hover:bg-[var(--color-surface-elevated)] transition-colors"
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs text-[var(--color-text-primary)] cursor-pointer transition-colors ${
+                    form.lessonIncludes.includes(item)
+                      ? 'border-[var(--color-primary-400)] bg-[var(--color-primary-50)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)]'
+                  }`}
                 >
-                  <input type="checkbox" defaultChecked={true} className="rounded text-[var(--color-primary-600)]" />
+                  <input
+                    type="checkbox"
+                    checked={form.lessonIncludes.includes(item)}
+                    onChange={() => toggleMulti(form.lessonIncludes, item, 'lessonIncludes')}
+                    className="rounded text-[var(--color-primary-600)]"
+                  />
                   <span>{item}</span>
                 </label>
               ))}
@@ -157,6 +175,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Notes Configuration" description="Define the purpose and depth of your teaching notes." />
           <ChipGroup
             label="Notes Purpose"
             options={purposes}
@@ -206,6 +225,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Presentation Configuration" description="Set the slide count, purpose, visual style, and content for your classroom slide deck." />
           <ChipGroup
             label="Number of Slides"
             options={counts}
@@ -277,6 +297,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Video Configuration" description="Plan the duration, style, narration, and storyboard content for your educational video." />
           <ChipGroup
             label="Video Duration"
             options={durations}
@@ -346,6 +367,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Assignment Configuration" description="Set the type, number of questions, question formats, marks, and options for your assignment." />
           <ChipGroup
             label="Assignment Type"
             options={assignTypes}
@@ -413,6 +435,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Worksheet Configuration" description="Build a printable practice worksheet with the right question types, layout, and answer key." />
           <ChipGroup
             label="Worksheet Purpose"
             options={purposes}
@@ -473,6 +496,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Activity Configuration" description="Design an interactive classroom activity with the right format, kind, duration, and components." />
           <ChipGroup
             label="Activity Format"
             options={groupTypes}
@@ -540,6 +564,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Flashcard Configuration" description="Set how many cards, their format, difficulty, and what to include on each card." />
           <ChipGroup
             label="Number of Cards"
             options={counts}
@@ -594,6 +619,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Quiz Configuration" description="Configure the number, types, and timing of questions in your quiz." />
           <ChipGroup
             label="Number of Questions"
             options={qCounts}
@@ -654,6 +680,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Mock Test Configuration" description="Build a complete timed test with difficulty distribution, question types, and marking scheme." />
           <ChipGroup
             label="Test Duration"
             options={durations}
@@ -742,6 +769,10 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
     case 'exam': {
       const durations = ['60 min', '90 min', '120 min', '150 min', '180 min'];
       const markOptions = ['30', '40', '50', '60', '80', '100'];
+      const sectionHeader = form.type === 'exam' ? 'Exam Configuration' : 'Question Paper Configuration';
+      const sectionDesc = form.type === 'exam'
+        ? 'Define the exam name, duration, marks, and section breakdown.'
+        : 'Design a formal question paper with named sections, question counts, and marks distribution.';
 
       const addSection = () => {
         const newId = String(Date.now());
@@ -762,6 +793,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title={sectionHeader} description={sectionDesc} />
           <div>
             <label className="block text-xs font-bold text-[var(--color-text-primary)] mb-1.5 uppercase tracking-wider">Exam / Paper Name</label>
             <input
@@ -865,6 +897,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Diagram Configuration" description="Configure the visual structure and content of your diagram. Choose the type, style, and what elements to include." />
           <div>
             <label className="block text-xs font-bold text-[var(--color-text-primary)] mb-2 uppercase tracking-wider">
               Diagram Type
@@ -966,6 +999,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Mind Map Configuration" description="Define the topic hierarchy and relationships. Set branch count, depth, layout, and node content." />
           <div>
             <label className="block text-xs font-bold text-[var(--color-text-primary)] mb-1.5 uppercase tracking-wider">
               Central Topic <span className="text-[10px] font-normal text-[var(--color-text-tertiary)]">(leave blank to use the topic above)</span>
@@ -1057,6 +1091,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Chart Configuration" description="Tell Teachora what data you want to visualize and choose the right chart format." />
           <div>
             <label className="block text-xs font-bold text-[var(--color-text-primary)] mb-1.5 uppercase tracking-wider">
               What Do You Want to Visualize?
@@ -1224,6 +1259,7 @@ export function TypeSpecificCustomForm({ form, onChange, errors }: TypeSpecificC
 
       return (
         <div className="space-y-6">
+          <SectionHeader title="Infographic Configuration" description="Choose how the information should be organized visually — purpose, style, orientation, and sections." />
           <div>
             <label className="block text-xs font-bold text-[var(--color-text-primary)] mb-1.5 uppercase tracking-wider">
               What Should the Infographic Explain?

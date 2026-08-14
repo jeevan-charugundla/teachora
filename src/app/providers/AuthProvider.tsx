@@ -8,7 +8,7 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { setUser, setSession, setProfile, setIsLoading, setIsInitialized } = useAuthStore();
+  const { setUser, setSession, setProfile, setIsLoading, setIsInitialized, setIsPasswordRecovery } = useAuthStore();
 
   useEffect(() => {
     // Get initial session
@@ -38,6 +38,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession(session);
         setUser(session?.user ?? null);
 
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsPasswordRecovery(true);
+        }
+
         if (event === 'SIGNED_IN' && session?.user) {
           const profile = await getProfile(session.user.id);
           setProfile(profile);
@@ -45,6 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         if (event === 'SIGNED_OUT') {
           setProfile(null);
+          setIsPasswordRecovery(false);
         }
 
         setIsLoading(false);
@@ -52,7 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
 
     return () => subscription.unsubscribe();
-  }, [setUser, setSession, setProfile, setIsLoading, setIsInitialized]);
+  }, [setUser, setSession, setProfile, setIsLoading, setIsInitialized, setIsPasswordRecovery]);
 
   return <>{children}</>;
 }

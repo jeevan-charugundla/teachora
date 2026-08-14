@@ -61,6 +61,8 @@ export interface CreationFormState {
   duration: string;
   learningObjectives: string;
   teachingStyle: string;
+  lessonIncludes: string[];
+  // legacy compat (kept for potential existing references)
   includeActivities: boolean;
   includeAssessment: boolean;
   includeHomework: boolean;
