@@ -6,6 +6,7 @@ import { AuthLayout } from './layouts/AuthLayout';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { SignupPage } from '@/features/auth/pages/SignupPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 
 // App pages
 import { HomePage } from '@/features/home/pages/HomePage';
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupPage /> },
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
+      { path: '/reset-password', element: <ResetPasswordPage /> },
     ],
   },
 
