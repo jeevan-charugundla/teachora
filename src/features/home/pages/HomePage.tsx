@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { getGreeting } from '@/lib/utils';
@@ -14,12 +15,20 @@ import {
   Video,
   Layers,
   Package,
-  MessageSquare,
   ArrowRight,
   Sparkles,
   FolderOpen,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { Project } from '@/types/database';
+import {
+  getRecentProjects,
+  toggleFavorite,
+  renameProject,
+  deleteProject,
+  subscribeToProjects,
+} from '@/services/supabase/projects';
+import { ProjectCard } from '@/features/workspace/components/ProjectCard';
 
 const quickCreateItems = [
   { to: '/app/create/lesson', icon: BookOpen, label: 'Lesson', color: 'bg-blue-50 text-blue-600' },
@@ -37,9 +46,94 @@ const quickCreateItems = [
 ];
 
 export function HomePage() {
-  const { profile } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const greeting = getGreeting();
   const firstName = profile?.full_name?.split(' ')[0] || 'Teacher';
+
+  const [recentProjects, setRecentProjects] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setLoadingProjects(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function loadRecent() {
+      try {
+        setLoadingProjects(true);
+        const data = await getRecentProjects(user!.id, 6);
+        if (isMounted) {
+          setRecentProjects(data);
+        }
+      } catch (err) {
+        console.error('Error fetching recent projects:', err);
+      } finally {
+        if (isMounted) {
+          setLoadingProjects(false);
+        }
+      }
+    }
+
+    loadRecent();
+
+    // Realtime subscription for Home page Recent Projects
+    const unsubscribe = subscribeToProjects(user.id, () => {
+      if (isMounted) {
+        // Refetch latest recent 6 projects
+        getRecentProjects(user.id, 6).then((latest) => {
+          if (isMounted) setRecentProjects(latest);
+        });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [user]);
+
+  const handleToggleFavorite = async (projectId: string, current: boolean) => {
+    const nextState = !current;
+    setRecentProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, is_favorite: nextState } : p))
+    );
+    try {
+      await toggleFavorite(projectId, nextState);
+    } catch {
+      setRecentProjects((prev) =>
+        prev.map((p) => (p.id === projectId ? { ...p, is_favorite: current } : p))
+      );
+    }
+  };
+
+  const handleRename = async (project: Project) => {
+    const newTitle = window.prompt('Enter new project title:', project.title);
+    if (newTitle && newTitle.trim() && newTitle.trim() !== project.title) {
+      try {
+        const updated = await renameProject(project.id, newTitle.trim());
+        setRecentProjects((prev) =>
+          prev.map((p) => (p.id === project.id ? updated : p))
+        );
+      } catch (err) {
+        console.error('Failed to rename project:', err);
+      }
+    }
+  };
+
+  const handleDelete = async (project: Project) => {
+    if (window.confirm(`Are you sure you want to delete "${project.title}"?`)) {
+      setRecentProjects((prev) => prev.filter((p) => p.id !== project.id));
+      try {
+        await deleteProject(project.id);
+      } catch {
+        const latest = await getRecentProjects(user!.id, 6);
+        setRecentProjects(latest);
+      }
+    }
+  };
 
   return (
     <div className="page-container max-w-5xl">
@@ -58,67 +152,64 @@ export function HomePage() {
         </p>
       </motion.div>
 
-      {/* AI Assistant CTA */}
+      {/* Quick Create Grid */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.05 }}
-      >
-        <Link
-          to="/app/assistant"
-          className="flex items-center gap-4 p-5 rounded-xl bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-primary-700)] text-white mb-8 hover:from-[var(--color-primary-700)] hover:to-[var(--color-primary-800)] transition-all group"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 shrink-0">
-            <MessageSquare className="h-6 w-6" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base mb-0.5">AI Teaching Assistant</h3>
-            <p className="text-sm text-white/80">
-              Ask questions, get explanations, generate quizzes and more
-            </p>
-          </div>
-          <ArrowRight className="h-5 w-5 shrink-0 group-hover:translate-x-1 transition-transform" />
-        </Link>
-      </motion.div>
-
-      {/* Quick Create */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
         className="mb-10"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="heading-3 flex items-center gap-2">
-            <Sparkles className="h-4.5 w-4.5 text-[var(--color-accent-500)]" />
-            Quick Create
-          </h2>
-          <Link
-            to="/app/create"
-            className="text-sm font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] flex items-center gap-1"
-          >
-            View all <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-          {quickCreateItems.map(({ to, icon: Icon, label, color }) => (
+        <h2 className="heading-3 mb-4">Quick Create</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {quickCreateItems.map((item) => (
             <Link
-              key={to}
-              to={to}
-              className="card card-interactive flex flex-col items-center gap-2.5 p-4 text-center group"
+              key={item.to}
+              to={item.to}
+              className="card group flex flex-col items-center justify-center p-4 text-center hover:border-[var(--color-primary-300)] transition-all hover:shadow-md"
             >
-              <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${color} transition-transform group-hover:scale-110`}>
-                <Icon className="h-5 w-5" />
+              <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${item.color} mb-2 group-hover:scale-105 transition-transform`}>
+                <item.icon className="h-5 w-5" />
               </div>
-              <span className="text-xs font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]">
-                {label}
+              <span className="text-xs font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-primary-600)] transition-colors">
+                {item.label}
               </span>
             </Link>
           ))}
         </div>
       </motion.div>
 
-      {/* Recent Projects */}
+      {/* AI Teaching Assistant Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="mb-10"
+      >
+        <Link
+          to="/app/assistant"
+          className="card group relative flex items-center justify-between p-6 bg-gradient-to-r from-[var(--color-primary-700)] to-[var(--color-primary-900)] text-white overflow-hidden hover:shadow-lg transition-all"
+        >
+          <div className="relative z-10 max-w-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5 text-emerald-300" />
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                Teachora AI Assistant
+              </span>
+            </div>
+            <h2 className="heading-2 text-xl font-bold text-white mb-1">
+              Ask anything, generate any material
+            </h2>
+            <p className="text-sm text-emerald-100/90">
+              Co-create lesson plans, adapt for student needs, or ask pedagogical questions in real time.
+            </p>
+          </div>
+          <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white group-hover:bg-white group-hover:text-[var(--color-primary-800)] transition-all">
+            <ArrowRight className="h-5 w-5" />
+          </div>
+        </Link>
+      </motion.div>
+
+      {/* Recent Projects Section */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -135,23 +226,46 @@ export function HomePage() {
           </Link>
         </div>
 
-        {/* Empty state for new users */}
-        <div className="card flex flex-col items-center justify-center py-12 px-4 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-surface-elevated)] mb-4">
-            <FolderOpen className="h-7 w-7 text-[var(--color-text-tertiary)]" />
+        {loadingProjects ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="card h-40 rounded-xl animate-pulse bg-[var(--color-surface-elevated)] border border-[var(--color-border)]"
+              />
+            ))}
           </div>
-          <h3 className="font-semibold text-[var(--color-text-primary)] mb-1">No projects yet</h3>
-          <p className="text-sm text-[var(--color-text-secondary)] max-w-xs mb-5">
-            Create your first lesson, quiz, or worksheet to get started
-          </p>
-          <Link
-            to="/app/create"
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)] transition-colors"
-          >
-            <Sparkles className="h-4 w-4" />
-            Start creating
-          </Link>
-        </div>
+        ) : recentProjects.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentProjects.map((proj) => (
+              <ProjectCard
+                key={proj.id}
+                project={proj}
+                onToggleFavorite={handleToggleFavorite}
+                onRename={handleRename}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        ) : (
+          /* Empty state for new users */
+          <div className="card flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-surface-elevated)] mb-4">
+              <FolderOpen className="h-7 w-7 text-[var(--color-text-tertiary)]" />
+            </div>
+            <h3 className="font-semibold text-[var(--color-text-primary)] mb-1">No projects yet</h3>
+            <p className="text-sm text-[var(--color-text-secondary)] max-w-xs mb-5">
+              Create your first lesson, quiz, or worksheet to get started
+            </p>
+            <Link
+              to="/app/create"
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)] transition-colors"
+            >
+              <Sparkles className="h-4 w-4" />
+              Start creating
+            </Link>
+          </div>
+        )}
       </motion.div>
 
       {/* Suggested Templates */}
@@ -169,54 +283,41 @@ export function HomePage() {
             Browse all <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[
-            {
-              title: 'Science Lesson Plan',
-              desc: 'Complete lesson structure with activities and assessment',
-              type: 'Lesson',
-              icon: BookOpen,
-              subject: 'Science',
-            },
-            {
-              title: 'Math Quiz Generator',
-              desc: 'Multiple choice and problem-solving questions',
-              type: 'Quiz',
-              icon: HelpCircle,
-              subject: 'Mathematics',
-            },
-            {
-              title: 'Reading Comprehension',
-              desc: 'Passage-based worksheet with graded questions',
-              type: 'Worksheet',
-              icon: FileSpreadsheet,
-              subject: 'English',
-            },
-          ].map((template) => (
-            <Link
-              key={template.title}
-              to="/app/create"
-              className="card card-interactive p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary-50)]">
-                  <template.icon className="h-5 w-5 text-[var(--color-primary-600)]" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-sm text-[var(--color-text-primary)] mb-0.5">{template.title}</h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2">{template.desc}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="inline-flex items-center rounded-md bg-[var(--color-surface-elevated)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-text-tertiary)]">
-                      {template.type}
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-[var(--color-surface-elevated)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-text-tertiary)]">
-                      {template.subject}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link to="/app/create/lesson" className="card group p-5 hover:border-[var(--color-primary-300)] transition-all">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 mb-3 group-hover:scale-105 transition-transform">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <h3 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary-600)] transition-colors mb-1">
+              5E Inquiry Lesson Plan
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Structured inquiry model for science & math topics
+            </p>
+          </Link>
+          <Link to="/app/create/quiz" className="card group p-5 hover:border-[var(--color-primary-300)] transition-all">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 mb-3 group-hover:scale-105 transition-transform">
+              <HelpCircle className="h-5 w-5" />
+            </div>
+            <h3 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary-600)] transition-colors mb-1">
+              10-Question Mastery Quiz
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Conceptual questions with detailed explanations
+            </p>
+          </Link>
+          <Link to="/app/create/worksheet" className="card group p-5 hover:border-[var(--color-primary-300)] transition-all">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 mb-3 group-hover:scale-105 transition-transform">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
+            <h3 className="font-semibold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-primary-600)] transition-colors mb-1">
+              Tiered Practice Worksheet
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Foundation, intermediate, and challenge tiers
+            </p>
+          </Link>
         </div>
       </motion.div>
     </div>

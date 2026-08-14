@@ -42,6 +42,7 @@ export interface Project {
   description?: string | null;
   project_type?: string;
   type: string;
+  category?: string | null;
   status: 'draft' | 'processing' | 'completed' | 'archived';
   subject?: string | null;
   grade_level?: string | null;
@@ -54,6 +55,7 @@ export interface Project {
   metadata?: Record<string, unknown>;
   content?: Record<string, unknown>;
   is_favorite?: boolean;
+  last_opened_at?: string | null;
   created_at: string;
   updated_at: string;
 }

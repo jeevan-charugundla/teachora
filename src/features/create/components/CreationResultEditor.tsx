@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { ArrowLeft, Download, FolderPlus, Copy, Share2, Check, CheckCheck, RefreshCw } from 'lucide-react';
 import type { CreationMeta, CreationFormState } from '../types/creationTypes';
 import { SaveExportModal, type ExportFormat } from '@/features/assistant/components/SaveExportModal';
-import { createProject } from '@/services/supabase/projects';
+import { createProject, updateProject } from '@/services/supabase/projects';
 import { useAuthStore } from '@/stores/authStore';
 
 // 16 Dedicated Previews
@@ -57,6 +57,8 @@ export function CreationResultEditor({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const [savedProjectId, setSavedProjectId] = useState<string | null>(null);
+
   const handleSaveToWorkspace = async () => {
     if (!user) {
       showToast('You must be signed in to save to Workspace.');
@@ -64,21 +66,34 @@ export function CreationResultEditor({
     }
 
     try {
-      await createProject({
-        user_id: user.id,
-        title: previewData?.title || `${meta.title}: ${form.topic}`,
-        type: meta.type as any,
-        project_type: meta.type,
-        subject: form.subject,
-        grade: form.grade,
-        status: 'draft',
-        content: previewData,
-        metadata: {
-          difficulty: form.difficulty,
-          generated_in: 'create_studio',
-        },
-        is_favorite: false,
-      });
+      if (savedProjectId) {
+        // Update existing project
+        await updateProject(savedProjectId, {
+          title: previewData?.title || `${meta.title}: ${form.topic}`,
+          subject: form.subject,
+          grade_level: form.grade,
+          content: previewData,
+          status: 'completed',
+        });
+      } else {
+        // Create new project
+        const created = await createProject({
+          user_id: user.id,
+          title: previewData?.title || `${meta.title}: ${form.topic}`,
+          type: meta.type as any,
+          project_type: meta.type,
+          subject: form.subject,
+          grade: form.grade,
+          status: 'completed',
+          content: previewData,
+          metadata: {
+            difficulty: form.difficulty,
+            generated_in: 'create_studio',
+          },
+          is_favorite: false,
+        });
+        setSavedProjectId(created.id);
+      }
 
       setSavedWorkspace(true);
       showToast('Saved to your Workspace successfully.');
