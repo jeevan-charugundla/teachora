@@ -29,3 +29,6 @@ supabase/.temp/
 supabase/.env
 supabase/.env.*
 supabase/.env.local
+
+# Markdown
+*.md
