@@ -20,10 +20,7 @@ With Teachora, educators can transform any syllabus topic or uploaded textbook P
 
 ---
 
-## 📸 Demo / Screenshots
 
-<!-- Add screenshot or GIF demo here -->
-> _[Add UI Demo / Screenshot showing the Creation Studio & Previews here]_
 
 ---
 
