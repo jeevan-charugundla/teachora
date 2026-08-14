@@ -148,11 +148,9 @@ teachora/
 
 This project is currently in active development by the core maintainer. Feedback and feature requests are welcome via GitHub Issues.
 
----
 
-## 📜 License
 
-This project is licensed under the [MIT License](LICENSE).
+
 
 ---
 
