@@ -1,134 +1,165 @@
-# Teachora - AI-Powered Educational Content & Studio Platform
+<!-- Tech stack confirmed: React 19, TypeScript, Vite 8, Tailwind CSS v4, Zustand, Dexie.js (IndexedDB), Supabase (Auth, Postgres, Storage), Supabase Edge Functions (Deno) -->
+# Teachora — AI-Powered Educational Content & Studio Platform
 
-**Teachora** is an end-to-end, AI-driven educational platform designed to empower educators, instructional designers, and content creators. It provides intelligent tools to generate, customize, preview, and export high-quality teaching materials, interactive lessons, assessment assets, and multimedia resources seamlessly.
+> Transform curriculum topics into rich, multi-format teaching assets, interactive lessons, and AI-tutored learning experiences in seconds.
 
----
-
-## 🌟 Key Features
-
-### 🎨 Creation Studio
-- **Multi-Format Content Generation**: Generate 13+ distinct educational asset types:
-  - **Lesson Plans & Notes**: Comprehensive structured summaries, key concepts, and detailed teaching guides.
-  - **Assessments & Evaluations**: Question papers, mock tests, quizzes, and rubrics.
-  - **Interactive Learning**: Flashcard decks, interactive student activities, and assignments.
-  - **Visual & Multimedia Assets**: Presentation slide outlines, infographics, mind maps, analytical charts, and educational video script outlines.
-- **Live Interactive Previews**: Rich, real-time visual previews for every content type with full editing and customizing capability before saving.
-- **Export Capabilities**: Export generated materials directly to PDF, DOCX (Microsoft Word), PPTX (PowerPoint), or raw JSON formats.
-
-### 🤖 AI Teacher Assistant & Chat
-- **Interactive Chat Interface**: Conversational AI tutor and assistant customized for pedagogical guidance, curriculum alignment, and lesson drafting.
-- **Document RAG / Context Awareness**: Extract and analyze uploaded PDF textbooks, syllabus documents, or notes to ground AI answers and creations directly in relevant study material.
-- **Multi-Provider AI Edge Pipeline**: Integrates Supabase Edge Functions with direct Pollinations AI / LLM models for generation and image synthesis.
-
-### 🗂️ Workspace & Project Management
-- **Folder & Asset Organization**: Organize educational content into custom workspaces, sub-folders, and projects.
-- **IndexedDB Offline Caching**: Browser-side storage using Dexie.js for persistent drafts and fast local state retrieval.
-- **Supabase Cloud Synchronization**: Sync profiles, project assets, conversations, and usage limits effortlessly with Supabase Postgres DB & Storage.
-
-### 🔍 Discover & Templates Catalog
-- **Curated Template Library**: Browse pre-built templates categorized by grade level, subject matter, and learning objective.
-- **Quick-Start Wizard**: Launch customized wizards for fast asset generation tailored to specific educational standards.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React_19-61DAFB?style=flat&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite_8-646CFF?style=flat&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_v4-38BDF8?style=flat&logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## 📖 Overview
 
-### Frontend Architecture
-- **Framework**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite 8](https://vitejs.dev/) with PWA support
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) + Radix UI Primitives + Framer Motion animations
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand) for global app state & Dexie.js for local IndexedDB caching
-- **Data Fetching & Caching**: [TanStack Query v5](https://tanstack.com/query)
-- **Charts & Data Visuals**: [Recharts](https://recharts.org/)
-- **Icons**: [Lucide React](https://lucide.dev/)
+Educators spend dozens of hours every week manually preparing lesson plans, creating assessments, formatting slide decks, and tailoring materials for diverse learning needs. **Teachora** solves this burden by offering an all-in-one AI creation studio and intelligent assistant for teachers, instructional designers, and content creators. 
 
-### Backend & AI Infrastructure
-- **Backend as a Service (BaaS)**: [Supabase](https://supabase.com/) (Authentication, PostgreSQL Database, Storage, RLS policies)
-- **Serverless Functions**: Supabase Edge Functions (Deno / TypeScript runtime)
-  - `generate-content`: Formats structured JSON educational assets based on strict prompt system guidelines.
-  - `generate-image`: Image synthesis pipeline for visual materials.
-  - `teacher-chat` & `chat`: Conversational AI endpoints with streaming & prompt context injection.
-  - `search-media`: Unsplash/Pexels media search edge function integration.
+With Teachora, educators can transform any syllabus topic or uploaded textbook PDF into 13+ structured, classroom-ready educational formats—complete with interactive previews, customized editing, offline draft caching, and one-click exports.
 
 ---
 
-## 📁 Repository Directory Structure
+## 📸 Demo / Screenshots
+
+<!-- Add screenshot or GIF demo here -->
+> _[Add UI Demo / Screenshot showing the Creation Studio & Previews here]_
+
+---
+
+## ✨ Key Features
+
+- **Multi-Format AI Creation Studio**: Generate lesson plans, question papers, quizzes, mock tests, flashcards, slide outlines, infographics, mind maps, and video scripts.
+- **Live Interactive Previews**: Instantly review, edit, and fine-tune AI-generated content before saving or exporting.
+- **RAG & PDF Document Context**: Upload textbooks, syllabus PDFs, or course notes to ground AI answers and asset generations directly in course content.
+- **Multi-Format Exporters**: Export created assets directly to PDF, DOCX (Microsoft Word), PPTX (PowerPoint), or raw JSON.
+- **Interactive AI Teacher Assistant**: Conversational AI tutor built for lesson drafting, pedagogical advice, and curriculum alignment.
+- **Workspaces & Offline Support**: Organize content into folders and projects with offline browser caching via Dexie.js (IndexedDB) and cloud sync with Supabase.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend Framework** | React 19 + TypeScript | Core UI library & type-safe component model |
+| **Build Tool & PWA** | Vite 8 + vite-plugin-pwa | Fast development server, bundling & progressive web app setup |
+| **Styling & Motion** | Tailwind CSS v4 + Framer Motion | Modern responsive design system, UI primitives & smooth animations |
+| **State & Offline Storage** | Zustand + Dexie.js (IndexedDB) | Global UI state management & offline-first browser draft caching |
+| **Data Fetching** | TanStack Query v5 | Server state caching, asynchronous query handling & invalidation |
+| **Backend as a Service** | Supabase (PostgreSQL, Auth, Storage) | User authentication, database schema, asset storage & RLS security |
+| **Serverless Infrastructure** | Supabase Edge Functions (Deno) | AI content generation pipelines, chat streaming & media search proxy |
+| **Visuals & Charts** | Recharts + Lucide React | Data visual analytics, chart rendering & vector icon library |
+
+---
+
+## 🏗️ Architecture
+
+Teachora follows a feature-driven frontend architecture structured around clean separation of concerns. Feature modules (`src/features/*`) encapsulate their own components, pages, data, services, and state types. Shared application infrastructure—such as authentication providers, top-level layouts, edge service abstractions, and UI Zustand stores—resides in dedicated global directories.
+
+Offline storage is powered by **Dexie.js (IndexedDB)** for local drafts, while cloud data synchronization, user identity, and storage buckets are managed via **Supabase**.
+
+```text
+src/
+├── app/          # App providers, layouts (Sidebar, BottomNav), router setup
+├── components/   # Shared UI components, overlays, modals, and error states
+├── features/     # Feature-sliced modules (assistant, create, discover, home, workspace)
+├── hooks/        # Reusable React hooks
+├── lib/          # Global constants and formatting utilities
+├── services/     # AI providers, document extractors, exporters (PDF/DOCX/PPTX), Supabase APIs
+├── stores/       # Zustand global state stores
+└── types/        # TypeScript declarations & database interfaces
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher (or `pnpm` / `yarn`)
+- **Supabase CLI** *(optional)*: For running backend Edge Functions locally
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jeevan-charugundla/teachora.git
+   cd teachora
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables:**
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+   Navigate to `http://localhost:5173` in your browser.
+
+5. **Build for production:**
+   ```bash
+   npm run build
+   ```
+
+---
+
+## 📁 Project Structure
 
 ```text
 teachora/
-├── public/                    # Static assets, icons, and web manifest
-├── scripts/                   # Test scripts for API verification & model tests
-├── src/
-│   ├── app/                   # Root providers, layouts (Sidebar, BottomNav), and routing setup
-│   ├── components/            # Reusable UI components (Common headers, feedback overlays, modals)
-│   ├── features/
-│   │   ├── assistant/         # AI Assistant Chat page, Markdown renderers, Save/Export modals
-│   │   ├── auth/              # Login, Signup, and Password reset flows
-│   │   ├── create/            # Creation Studio, wizard forms, asset-specific previews & catalog
-│   │   ├── discover/          # Content discovery & template catalog page
-│   │   ├── home/              # Main dashboard overview
-│   │   ├── lessons/           # Lesson planning, create & edit flows
-│   │   ├── profile/           # User profile & subscription management
-│   │   └── workspace/         # Folder organization, asset management & project view
-│   ├── hooks/                 # Custom React hooks (media queries, online status)
-│   ├── lib/                   # Utilities & constants
-│   ├── services/              # AI providers, document extraction (PDF), exporters (PDF/DOCX/PPTX), Supabase client APIs
-│   ├── stores/                # Zustand state stores (Auth, UI, Creation)
-│   └── types/                 # Shared TypeScript interfaces & Database schemas
-└── supabase/
-    ├── functions/             # Deno Edge Functions (chat, generate-content, generate-image, search-media)
-    └── migrations/            # PostgreSQL database schema & vector document chunk migrations
+├── public/           # Static web assets, manifest, and icons
+├── scripts/          # Node test scripts for API & AI generation verification
+├── src/              # React frontend application source code
+└── supabase/         # Deno edge functions (chat, generate-content) and SQL migrations
 ```
 
 ---
 
-## 🚀 Quick Start & Local Setup
+## 📋 Roadmap
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18.0 or later recommended)
-- `npm` or `pnpm` / `yarn`
-- [Supabase CLI](https://supabase.com/docs/guides/cli) (optional, if running backend Edge Functions locally)
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/jeevan-charugundla/teachora.git
-cd teachora
-```
-
-### 2. Install Dependencies
-```bash
-npm install
-```
-
-### 3. Environment Configuration
-Create a `.env` file in the root directory (or copy `.env.example`):
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-If deploying or developing Supabase Edge Functions locally, configure `supabase/.env`:
-```env
-POLLINATIONS_API_KEY=your_optional_key
-```
-
-### 4. Start Development Server
-```bash
-npm run dev
-```
-Open your browser and navigate to `http://localhost:5173`.
+- [x] ✅ Multi-format educational asset generator (13+ asset types)
+- [x] ✅ Live interactive asset previews & inline editing
+- [x] ✅ Document context ingestion (PDF extraction)
+- [x] ✅ PDF, DOCX, and PPTX export engines
+- [x] ✅ Workspace & folder management with Dexie offline caching
+- [x] ✅ Supabase Authentication & PostgreSQL Cloud Sync
+- [🚧] In Progress: Enhanced AI prompt customizer for state/national board standards
+- [📋] Planned: Collaborative workspace sharing & team classrooms
+- [📋] Planned: LMS Integration (Google Classroom, Canvas export)
 
 ---
 
-## 📜 Build & Maintenance Commands
+## ⚠️ Known Limitations
 
-| Command | Description |
-| :--- | :--- |
-| `npm run dev` | Starts Vite local development server with HMR. |
-| `npm run build` | Runs TypeScript typechecks (`tsc -b`) and builds production bundle. |
-| `npm run preview` | Previews production build build output locally. |
-| `npm run lint` | Runs [Oxlint](https://oxc.rs/) for high-performance linting. |
+- **AI Generation**: Requires an active internet connection to communicate with AI Edge endpoints.
+- **Document Processing**: Large PDF extractions (>50 pages) run client-side and may experience memory lag on low-spec hardware.
+- **Offline Mode**: Offline capabilities support draft editing and local browsing; generating new AI content requires online access.
 
 ---
 
+## 🤝 Contributing
 
+This project is currently in active development by the core maintainer. Feedback and feature requests are welcome via GitHub Issues.
+
+---
+
+## 📜 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## ✉️ Author / Contact
+
+**Jeevan Charugundla**  
+- GitHub: [@jeevan-charugundla](https://github.com/jeevan-charugundla)
