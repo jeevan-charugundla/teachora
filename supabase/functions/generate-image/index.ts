@@ -68,11 +68,24 @@ function buildEducationalImagePrompt(params: {
   return `Create a high-quality ${styleDesc} showing: ${topic}. Subject: ${subject}. Audience: ${grade} students. ${orientationDesc}. Diagram type: ${diagramType}.${elementsSentence} Use a clean white or very light neutral background. No text labels, no callouts, no watermarks, no annotations written on the image — labels will be overlaid separately by the educational platform. Focus on scientific accuracy, realistic textures, clear structural definition, and educational clarity.${extra} Style: ${visualStyle}.`;
 }
 
+function sanitizeSearchQuery(query: string): string {
+  if (!query) return "science";
+  let cleaned = query
+    .replace(/grade\s*\d+/gi, "")
+    .replace(/class\s*\d+/gi, "")
+    .replace(/(educational|worksheet|activity|diagram|lesson plan|presentation|infographic|unit|chapter|middle school|high school)/gi, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || query;
+}
+
 // Search Pexels for stock photos
 async function searchPexels(query: string, perPage: number = 6) {
   if (!PEXELS_API_KEY || !query) return [];
   try {
-    const cleanQuery = encodeURIComponent(query.trim());
+    const cleaned = sanitizeSearchQuery(query);
+    const cleanQuery = encodeURIComponent(cleaned);
     const res = await fetch(
       `https://api.pexels.com/v1/search?query=${cleanQuery}&per_page=${perPage}&orientation=landscape`,
       { headers: { Authorization: PEXELS_API_KEY } }
