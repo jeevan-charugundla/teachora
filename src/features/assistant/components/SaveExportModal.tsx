@@ -9,6 +9,8 @@ import {
   X,
   Download,
   AlertCircle,
+  Image as ImageIcon,
+  Code as VectorIcon,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import {
@@ -18,8 +20,13 @@ import {
   exportToTXT,
   printDocument,
 } from '../../../services/export/documentExporter';
+import {
+  exportDiagramToPDF,
+  exportDiagramToPNG,
+  exportDiagramToSVG,
+} from '../../../services/export/diagramExporter';
 
-export type ExportFormat = 'pdf' | 'docx' | 'txt' | 'print';
+export type ExportFormat = 'pdf' | 'docx' | 'png' | 'svg' | 'txt' | 'print';
 
 interface SaveExportModalProps {
   isOpen: boolean;
@@ -27,6 +34,10 @@ interface SaveExportModalProps {
   rawMarkdownContent: string;
   defaultTitle?: string;
   onSuccess?: (format: ExportFormat) => void;
+  diagramData?: any;
+  svgRef?: React.RefObject<SVGSVGElement | null>;
+  subject?: string;
+  grade?: string;
 }
 
 interface FormatOption {
@@ -40,7 +51,7 @@ interface FormatOption {
   loadingLabel: string;
 }
 
-const formatOptions: FormatOption[] = [
+const defaultFormatOptions: FormatOption[] = [
   {
     id: 'pdf',
     title: 'PDF Document',
@@ -50,6 +61,26 @@ const formatOptions: FormatOption[] = [
     iconColor: 'text-rose-600',
     buttonLabel: 'Download PDF',
     loadingLabel: 'Generating PDF…',
+  },
+  {
+    id: 'png',
+    title: 'PNG Image',
+    description: 'High-resolution diagram image',
+    icon: ImageIcon,
+    iconBg: 'bg-purple-500/10',
+    iconColor: 'text-purple-600',
+    buttonLabel: 'Download PNG Image',
+    loadingLabel: 'Generating image…',
+  },
+  {
+    id: 'svg',
+    title: 'SVG Vector Graphic',
+    description: 'Scalable vector file for editing',
+    icon: VectorIcon,
+    iconBg: 'bg-teal-500/10',
+    iconColor: 'text-teal-600',
+    buttonLabel: 'Download SVG Vector',
+    loadingLabel: 'Preparing SVG…',
   },
   {
     id: 'docx',
@@ -89,10 +120,19 @@ export function SaveExportModal({
   rawMarkdownContent,
   defaultTitle,
   onSuccess,
+  diagramData,
+  svgRef,
+  subject,
+  grade,
 }: SaveExportModalProps) {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('pdf');
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter options: if not diagram, omit PNG/SVG
+  const availableOptions = diagramData
+    ? defaultFormatOptions
+    : defaultFormatOptions.filter((o) => o.id !== 'png' && o.id !== 'svg');
 
   // Close on Escape
   useEffect(() => {
@@ -109,7 +149,7 @@ export function SaveExportModal({
 
   if (!isOpen) return null;
 
-  const currentOption = formatOptions.find((f) => f.id === selectedFormat) || formatOptions[0];
+  const currentOption = availableOptions.find((f) => f.id === selectedFormat) || availableOptions[0];
 
   const handleExport = async () => {
     if (isExporting) return;
@@ -120,7 +160,27 @@ export function SaveExportModal({
       const doc = parseMarkdownToDocument(rawMarkdownContent);
       const filename = defaultTitle || doc.title;
 
-      if (selectedFormat === 'pdf') {
+      if (diagramData && selectedFormat === 'pdf') {
+        await exportDiagramToPDF({
+          data: diagramData,
+          title: filename,
+          subject,
+          grade,
+          svgElement: svgRef?.current,
+        });
+      } else if (diagramData && selectedFormat === 'png') {
+        await exportDiagramToPNG({
+          data: diagramData,
+          title: filename,
+          svgElement: svgRef?.current,
+        });
+      } else if (diagramData && selectedFormat === 'svg') {
+        exportDiagramToSVG({
+          data: diagramData,
+          title: filename,
+          svgElement: svgRef?.current,
+        });
+      } else if (selectedFormat === 'pdf') {
         await exportToPDF(doc, filename);
       } else if (selectedFormat === 'docx') {
         await exportToDOCX(doc, filename);
@@ -134,9 +194,9 @@ export function SaveExportModal({
       setTimeout(() => {
         onClose();
       }, 500);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Export error:', err);
-      setError("Couldn't generate the document. Please try again.");
+      setError(err?.message || "Couldn't generate the document. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -180,7 +240,7 @@ export function SaveExportModal({
 
         {/* Format Selection Cards */}
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {formatOptions.map((opt) => {
+          {availableOptions.map((opt) => {
             const isSelected = selectedFormat === opt.id;
             const IconComponent = opt.icon;
 

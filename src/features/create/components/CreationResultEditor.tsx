@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ArrowLeft, Download, FolderPlus, Copy, Share2, Check, CheckCheck, RefreshCw } from 'lucide-react';
 import type { CreationMeta, CreationFormState } from '../types/creationTypes';
 import { SaveExportModal, type ExportFormat } from '@/features/assistant/components/SaveExportModal';
@@ -42,6 +42,7 @@ export function CreationResultEditor({
   const [copied, setCopied] = useState(false);
   const [savedWorkspace, setSavedWorkspace] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const svgRef = useRef<SVGSVGElement | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -122,7 +123,7 @@ export function CreationResultEditor({
       case 'exam':
         return <QuestionPaperPreview data={previewData} />;
       case 'diagram':
-        return <DiagramPreview data={previewData} />;
+        return <DiagramPreview data={previewData} svgRef={svgRef} />;
       case 'mind-map':
         return <MindMapPreview data={previewData} />;
       case 'chart':
@@ -239,6 +240,10 @@ export function CreationResultEditor({
         rawMarkdownContent={markdownExportText}
         defaultTitle={previewData?.title || `${meta.title} - ${form.topic}`}
         onSuccess={handleExportSuccess}
+        diagramData={meta.type === 'diagram' ? previewData : undefined}
+        svgRef={svgRef}
+        subject={form.subject}
+        grade={form.grade}
       />
 
       {/* Floating Toast */}

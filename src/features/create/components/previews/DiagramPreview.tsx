@@ -4,6 +4,7 @@ import { CreationService } from '../../services/creationService';
 
 interface DiagramPreviewProps {
   data: any;
+  svgRef?: React.RefObject<SVGSVGElement | null>;
 }
 
 // Flow-type diagram types that get the node-connection canvas
@@ -28,58 +29,82 @@ interface SvgConnection {
   label?: string;
 }
 
-function autoLayout(nodes: SvgNode[], diagramType: string): SvgNode[] {
+function autoLayout(nodes: SvgNode[], diagramType: string, isLandscape: boolean): { nodes: SvgNode[]; W: number; H: number; NODE_W: number; NODE_H: number } {
   const type = (diagramType || '').toLowerCase();
   const count = nodes.length;
-  const W = 700;
-  const H = 360;
 
-  if (type === 'cycle diagram') {
-    const cx = W / 2;
-    const cy = H / 2;
-    const r = Math.min(cx, cy) - 70;
-    return nodes.map((n, i) => ({
+  if (isLandscape) {
+    const W = 1000;
+    const H = 460;
+    const leftMargin = 90;
+    const rightMargin = W - 90;
+    const usableW = rightMargin - leftMargin;
+
+    const NODE_W = Math.max(160, Math.min(220, Math.floor(usableW / Math.max(count, 1)) - 25));
+    const NODE_H = 68;
+
+    if (type === 'cycle diagram') {
+      const cx = W / 2;
+      const cy = H / 2;
+      const r = Math.min(cx, cy) - 90;
+      const positioned = nodes.map((n, i) => ({
+        ...n,
+        x: Math.round(cx + r * Math.cos((2 * Math.PI * i) / count - Math.PI / 2)),
+        y: Math.round(cy + r * Math.sin((2 * Math.PI * i) / count - Math.PI / 2)),
+      }));
+      return { nodes: positioned, W, H, NODE_W: 160, NODE_H: 64 };
+    }
+
+    if (type === 'hierarchy') {
+      const root = nodes[0];
+      const children = nodes.slice(1);
+      const spacing = usableW / Math.max(children.length, 1);
+      const positioned = [
+        { ...root, x: W / 2, y: 80 },
+        ...children.map((n, i) => ({ ...n, x: Math.round(leftMargin + spacing * i + spacing / 2), y: H - 90 })),
+      ];
+      return { nodes: positioned, W, H, NODE_W: 170, NODE_H: 64 };
+    }
+
+    // Default Horizontal Process / Flowchart / Timeline (Left-to-Right)
+    const spacing = count > 1 ? usableW / (count - 1) : 0;
+    const positioned = nodes.map((n, i) => ({
       ...n,
-      x: Math.round(cx + r * Math.cos((2 * Math.PI * i) / count - Math.PI / 2)),
-      y: Math.round(cy + r * Math.sin((2 * Math.PI * i) / count - Math.PI / 2)),
+      x: count === 1 ? W / 2 : Math.round(leftMargin + spacing * i),
+      y: Math.round(H / 2 + (i % 2 === 0 ? -15 : 15)), // Slight stagger for visual clarity
     }));
-  }
 
-  if (type === 'hierarchy') {
-    const root = nodes[0];
-    const children = nodes.slice(1);
-    const spacing = W / Math.max(children.length, 1);
-    return [
-      { ...root, x: W / 2, y: 60 },
-      ...children.map((n, i) => ({ ...n, x: Math.round(spacing * i + spacing / 2), y: H - 60 })),
-    ];
-  }
+    return { nodes: positioned, W, H, NODE_W, NODE_H };
+  } else {
+    // Vertical Portrait Layout (Top-to-Bottom)
+    const W = 800;
+    const H = Math.max(560, count * 110 + 60);
+    const topMargin = 70;
+    const bottomMargin = H - 70;
+    const usableH = bottomMargin - topMargin;
+    const spacing = count > 1 ? usableH / (count - 1) : 0;
 
-  if (type === 'timeline') {
-    const spacing = W / Math.max(count, 1);
-    return nodes.map((n, i) => ({
+    const maxLen = Math.max(...nodes.map((n) => (n.label || '').length));
+    const NODE_W = Math.max(240, Math.min(360, maxLen * 8 + 60));
+    const NODE_H = 68;
+
+    const positioned = nodes.map((n, i) => ({
       ...n,
-      x: Math.round(spacing * i + spacing / 2),
-      y: H / 2,
+      x: W / 2,
+      y: count === 1 ? H / 2 : Math.round(topMargin + spacing * i),
     }));
-  }
 
-  // Default: vertical process/flowchart
-  const spacing = H / Math.max(count, 1);
-  return nodes.map((n, i) => ({
-    ...n,
-    x: W / 2,
-    y: Math.round(spacing * i + spacing / 2),
-  }));
+    return { nodes: positioned, W, H, NODE_W, NODE_H };
+  }
 }
 
-function NodeFlowCanvas({ data }: { data: any }) {
+function NodeFlowCanvas({ data, svgRef }: { data: any; svgRef?: React.RefObject<SVGSVGElement | null> }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const rawNodes: SvgNode[] = Array.isArray(data.nodes) && data.nodes.length > 0
     ? data.nodes
     : (Array.isArray(data.elements) && data.elements.length > 0
-        ? data.elements.map((el: any) => ({ id: el.id, label: el.label, description: el.description }))
+        ? data.elements.map((el: any) => ({ id: el.id, label: el.label || el.name, description: el.description }))
         : []);
 
   const connections: SvgConnection[] = Array.isArray(data.connections) && data.connections.length > 0
@@ -96,11 +121,8 @@ function NodeFlowCanvas({ data }: { data: any }) {
     );
   }
 
-  const nodes = autoLayout(rawNodes, data.diagramType || '');
-  const W = 700;
-  const H = 360;
-  const NODE_W = 130;
-  const NODE_H = 44;
+  const isLandscape = (data.orientation || '').toLowerCase() === 'landscape' || (data.orientation || '') === '' || ['process diagram', 'timeline', 'flowchart'].includes((data.diagramType || '').toLowerCase());
+  const { nodes, W, H, NODE_W, NODE_H } = autoLayout(rawNodes, data.diagramType || '', isLandscape);
 
   const nodeById: Record<string, SvgNode> = {};
   const nodeByLabel: Record<string, SvgNode> = {};
@@ -120,16 +142,18 @@ function NodeFlowCanvas({ data }: { data: any }) {
   return (
     <div className="w-full overflow-x-auto">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         className="w-full max-w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"
-        style={{ minHeight: '240px', maxHeight: '420px' }}
+        style={{ minHeight: '300px', maxHeight: '540px' }}
       >
         <defs>
           <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" />
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
           </marker>
         </defs>
 
+        {/* 1. Connections / Arrows */}
         {connections.map((conn, idx) => {
           const fromNode = resolveNode(conn.from);
           const toNode = resolveNode(conn.to);
@@ -139,34 +163,91 @@ function NodeFlowCanvas({ data }: { data: any }) {
           const fy = fromNode.y!;
           const tx = toNode.x!;
           const ty = toNode.y!;
-          const mx = (fx + tx) / 2;
-          const my = (fy + ty) / 2;
+
+          let x1 = fx;
+          let y1 = fy;
+          let x2 = tx;
+          let y2 = ty;
+
+          if (isLandscape && Math.abs(tx - fx) > Math.abs(ty - fy)) {
+            x1 = fx < tx ? fx + NODE_W / 2 : fx - NODE_W / 2;
+            y1 = fy;
+            x2 = fx < tx ? tx - NODE_W / 2 : tx + NODE_W / 2;
+            y2 = ty;
+          } else {
+            x1 = fx;
+            y1 = fy < ty ? fy + NODE_H / 2 : fy - NODE_H / 2;
+            x2 = tx;
+            y2 = fy < ty ? ty - NODE_H / 2 : ty + NODE_H / 2;
+          }
+
+          const mx = (x1 + x2) / 2;
+          const my = (y1 + y2) / 2;
+
+          const labelText = conn.label || '';
+          const labelWidth = Math.max(70, labelText.length * 7 + 16);
 
           return (
             <g key={idx}>
               <line
-                x1={fx}
-                y1={fy + NODE_H / 2}
-                x2={tx}
-                y2={ty - NODE_H / 2}
-                stroke="#d1d5db"
-                strokeWidth={2}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="#94a3b8"
+                strokeWidth={2.5}
                 markerEnd="url(#arrow)"
               />
-              {conn.label && (
-                <text x={mx} y={my} textAnchor="middle" fontSize={9} fill="#9ca3af" fontWeight="600">
-                  {conn.label}
-                </text>
+              {labelText && (
+                <g transform={`translate(${mx}, ${my})`}>
+                  <rect
+                    x={-labelWidth / 2}
+                    y={-10}
+                    width={labelWidth}
+                    height={20}
+                    rx={10}
+                    fill="#ffffff"
+                    stroke="#cbd5e1"
+                    strokeWidth={1}
+                    className="shadow-2xs"
+                  />
+                  <text
+                    x={0}
+                    y={3.5}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fontWeight="700"
+                    fill="#475569"
+                  >
+                    {labelText}
+                  </text>
+                </g>
               )}
             </g>
           );
         })}
 
+        {/* 2. Nodes */}
         {nodes.map((node, idx) => {
           const color = diagramColors[idx % diagramColors.length];
           const isHovered = hoveredId === node.id;
           const x = node.x! - NODE_W / 2;
           const y = node.y! - NODE_H / 2;
+
+          // Split label into lines if long (no truncation!)
+          const title = node.label || '';
+          const titleWords = title.split(' ');
+          let line1 = title;
+          let line2 = '';
+
+          if (title.length > 22 && titleWords.length > 1) {
+            const mid = Math.ceil(titleWords.length / 2);
+            line1 = titleWords.slice(0, mid).join(' ');
+            line2 = titleWords.slice(mid).join(' ');
+          }
+
+          const desc = node.description || '';
+          const shortDesc = desc.length > 45 ? desc.slice(0, 42) + '…' : desc;
 
           return (
             <g
@@ -176,25 +257,45 @@ function NodeFlowCanvas({ data }: { data: any }) {
               style={{ cursor: 'pointer' }}
             >
               <rect
-                x={x} y={y} width={NODE_W} height={NODE_H} rx={10}
-                fill={isHovered ? color : `${color}20`}
-                stroke={color} strokeWidth={2}
-                style={{ transition: 'fill 0.15s' }}
+                x={x} y={y} width={NODE_W} height={NODE_H} rx={12}
+                fill={isHovered ? color : `${color}18`}
+                stroke={color} strokeWidth={isHovered ? 3 : 2}
+                style={{ transition: 'all 0.15s ease' }}
               />
-              <text
-                x={node.x} y={node.y! - 4}
-                textAnchor="middle" fontSize={10} fontWeight="700"
-                fill={isHovered ? '#fff' : color}
-              >
-                {node.label.length > 18 ? node.label.slice(0, 17) + '…' : node.label}
-              </text>
-              {node.description && (
+              {line2 ? (
+                <>
+                  <text
+                    x={node.x} y={node.y! - (shortDesc ? 12 : 6)}
+                    textAnchor="middle" fontSize={11} fontWeight="800"
+                    fill={isHovered ? '#ffffff' : '#0f172a'}
+                  >
+                    {line1}
+                  </text>
+                  <text
+                    x={node.x} y={node.y! + (shortDesc ? 2 : 8)}
+                    textAnchor="middle" fontSize={11} fontWeight="800"
+                    fill={isHovered ? '#ffffff' : '#0f172a'}
+                  >
+                    {line2}
+                  </text>
+                </>
+              ) : (
                 <text
-                  x={node.x} y={node.y! + 10}
-                  textAnchor="middle" fontSize={8}
-                  fill={isHovered ? 'rgba(255,255,255,0.85)' : '#6b7280'}
+                  x={node.x} y={node.y! - (shortDesc ? 6 : -3)}
+                  textAnchor="middle" fontSize={11.5} fontWeight="800"
+                  fill={isHovered ? '#ffffff' : '#0f172a'}
                 >
-                  {node.description.slice(0, 30)}
+                  {line1}
+                </text>
+              )}
+
+              {shortDesc && (
+                <text
+                  x={node.x} y={node.y! + (line2 ? 18 : 12)}
+                  textAnchor="middle" fontSize={8.5}
+                  fill={isHovered ? 'rgba(255,255,255,0.9)' : '#64748b'}
+                >
+                  {shortDesc}
                 </text>
               )}
             </g>
@@ -636,7 +737,7 @@ function AiVisualSection({
 }
 
 // ─── Main DiagramPreview Component ───────────────────────────────────────────
-export function DiagramPreview({ data }: DiagramPreviewProps) {
+export function DiagramPreview({ data, svgRef }: DiagramPreviewProps) {
   const [visualSource, setVisualSource] = useState<'auto' | 'stock' | 'ai'>('ai');
   const [isGeneratingVisual, setIsGeneratingVisual] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
@@ -757,7 +858,7 @@ export function DiagramPreview({ data }: DiagramPreviewProps) {
         {(!flowType || activeTab === 'diagram') && (
           <div className="card p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xs">
             {flowType ? (
-              <NodeFlowCanvas data={data} />
+              <NodeFlowCanvas data={data} svgRef={svgRef} />
             ) : (
               <LabeledDiagramCanvas data={data} generatedImageUrl={generatedImageUrl || undefined} />
             )}
