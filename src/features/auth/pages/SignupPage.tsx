@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/services/supabase/client';
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ export function SignupPage() {
   return (
     <div>
       <h2 className="heading-1 mb-2">Create your account</h2>
-      <p className="text-body mb-8">Start creating classroom-ready materials with Teachora</p>
+      <p className="text-body mb-6">Start creating classroom-ready materials with Teachora</p>
 
       {error && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -93,6 +94,22 @@ export function SignupPage() {
           <span>{successInfo}</span>
         </div>
       )}
+
+      {/* Google OAuth Button */}
+      <GoogleSignInButton
+        label="Continue with Google"
+        onError={(err) => setError(err)}
+      />
+
+      {/* Divider */}
+      <div className="relative my-6 text-center text-xs">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <div className="w-full border-t border-[var(--color-border)]" />
+        </div>
+        <span className="relative bg-[var(--color-surface)] px-3 text-[var(--color-text-tertiary)] font-semibold uppercase tracking-wider">
+          Or sign up with email
+        </span>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -169,7 +186,7 @@ export function SignupPage() {
               Creating account…
             </>
           ) : (
-            'Create account'
+            'Create account with Email'
           )}
         </button>
       </form>

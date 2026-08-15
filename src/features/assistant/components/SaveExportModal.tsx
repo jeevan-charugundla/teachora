@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Code as VectorIcon,
+  Presentation as PresentationIcon,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import {
@@ -25,8 +26,12 @@ import {
   exportDiagramToPNG,
   exportDiagramToSVG,
 } from '../../../services/export/diagramExporter';
+import {
+  exportPresentationToPDF,
+  exportPresentationToPPTX,
+} from '../../../services/export/presentationExporter';
 
-export type ExportFormat = 'pdf' | 'docx' | 'png' | 'svg' | 'txt' | 'print';
+export type ExportFormat = 'pdf' | 'docx' | 'pptx' | 'png' | 'svg' | 'txt' | 'print';
 
 interface SaveExportModalProps {
   isOpen: boolean;
@@ -35,6 +40,7 @@ interface SaveExportModalProps {
   defaultTitle?: string;
   onSuccess?: (format: ExportFormat) => void;
   diagramData?: any;
+  presentationData?: any;
   svgRef?: React.RefObject<SVGSVGElement | null>;
   subject?: string;
   grade?: string;
@@ -53,9 +59,19 @@ interface FormatOption {
 
 const defaultFormatOptions: FormatOption[] = [
   {
+    id: 'pptx',
+    title: 'PowerPoint Presentation',
+    description: 'Editable 16:9 widescreen slide deck',
+    icon: PresentationIcon,
+    iconBg: 'bg-orange-500/10',
+    iconColor: 'text-orange-600',
+    buttonLabel: 'Download PowerPoint (.pptx)',
+    loadingLabel: 'Generating PowerPoint deck…',
+  },
+  {
     id: 'pdf',
-    title: 'PDF Document',
-    description: 'Best for printing and sharing',
+    title: 'PDF Document / Slide Deck',
+    description: 'Best for printing, viewing and sharing',
     icon: FileText,
     iconBg: 'bg-rose-500/10',
     iconColor: 'text-rose-600',
@@ -121,6 +137,7 @@ export function SaveExportModal({
   defaultTitle,
   onSuccess,
   diagramData,
+  presentationData,
   svgRef,
   subject,
   grade,
@@ -129,10 +146,25 @@ export function SaveExportModal({
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter options: if not diagram, omit PNG/SVG
-  const availableOptions = diagramData
-    ? defaultFormatOptions
-    : defaultFormatOptions.filter((o) => o.id !== 'png' && o.id !== 'svg');
+  // Set default selection based on content type
+  useEffect(() => {
+    if (presentationData) {
+      setSelectedFormat('pptx');
+    } else {
+      setSelectedFormat('pdf');
+    }
+  }, [presentationData, isOpen]);
+
+  // Filter options based on content type
+  const availableOptions = defaultFormatOptions.filter((opt) => {
+    if (diagramData) {
+      return opt.id !== 'pptx';
+    }
+    if (presentationData) {
+      return opt.id !== 'png' && opt.id !== 'svg';
+    }
+    return opt.id !== 'png' && opt.id !== 'svg' && opt.id !== 'pptx';
+  });
 
   // Close on Escape
   useEffect(() => {
@@ -160,7 +192,11 @@ export function SaveExportModal({
       const doc = parseMarkdownToDocument(rawMarkdownContent);
       const filename = defaultTitle || doc.title;
 
-      if (diagramData && selectedFormat === 'pdf') {
+      if (presentationData && selectedFormat === 'pptx') {
+        await exportPresentationToPPTX(presentationData, filename);
+      } else if (presentationData && selectedFormat === 'pdf') {
+        await exportPresentationToPDF(presentationData, filename);
+      } else if (diagramData && selectedFormat === 'pdf') {
         await exportDiagramToPDF({
           data: diagramData,
           title: filename,

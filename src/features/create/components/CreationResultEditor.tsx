@@ -256,6 +256,7 @@ export function CreationResultEditor({
         defaultTitle={previewData?.title || `${meta.title} - ${form.topic}`}
         onSuccess={handleExportSuccess}
         diagramData={meta.type === 'diagram' ? previewData : undefined}
+        presentationData={meta.type === 'presentation' ? previewData : undefined}
         svgRef={svgRef}
         subject={form.subject}
         grade={form.grade}

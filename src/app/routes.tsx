@@ -7,6 +7,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { SignupPage } from '@/features/auth/pages/SignupPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
+import { AuthCallbackPage } from '@/features/auth/pages/AuthCallbackPage';
 
 // App pages
 import { HomePage } from '@/features/home/pages/HomePage';
@@ -19,6 +20,9 @@ import { AssistantPage } from '@/features/assistant/pages/AssistantPage';
 import { LessonEditorPage } from '@/features/lessons/pages/LessonEditorPage';
 
 export const router = createBrowserRouter([
+  // Auth Callback route
+  { path: '/auth/callback', element: <AuthCallbackPage /> },
+
   // Auth routes
   {
     element: <AuthLayout />,
@@ -49,6 +53,12 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
     ],
   },
+
+  // Direct shortcuts for protected routes
+  { path: '/dashboard', element: <Navigate to="/app" replace /> },
+  { path: '/create', element: <Navigate to="/app/create" replace /> },
+  { path: '/workspace', element: <Navigate to="/app/workspace" replace /> },
+  { path: '/assistant', element: <Navigate to="/app/assistant" replace /> },
 
   // Default redirect
   { path: '/', element: <Navigate to="/app" replace /> },

@@ -95,37 +95,86 @@ export function validateAndNormalize(creationType: string, raw: any, form: Recor
     }
 
     case "presentation": {
-      const title = raw.title || topic;
-      const slides = Array.isArray(raw.slides) && raw.slides.length > 0
-        ? raw.slides.map((s: any, idx: number) => ({
-            slideNumber: s.slideNumber || idx + 1,
-            type: s.type || (idx === 0 ? "title" : "content"),
-            title: s.title || `Slide ${idx + 1}`,
-            subtitle: s.subtitle || "",
-            content: Array.isArray(s.content) ? s.content : [String(s.content || "")],
-            speakerNotes: s.speakerNotes || s.notes || "",
-            visualSuggestion: s.visualSuggestion || s.visual || "",
-          }))
-        : [
-            {
-              slideNumber: 1,
-              type: "title",
-              title: topic,
-              subtitle: `Guide for ${grade}`,
-              content: ["Introduction", "Core Concepts"],
-              speakerNotes: "Welcome students and introduce goals.",
-              visualSuggestion: topic,
-            },
-          ];
+      const title = String(raw.title || topic).replace(/#+\s*/g, '').replace(/\*\*/g, '').trim();
+      const requestedCount = Math.max(3, Math.min(30, Number(form.slideCount) || 8));
+      const speakerNotesEnabled = form.presentationSpeakerNotes !== false;
+
+      let normalizedSlides = Array.isArray(raw.slides) && raw.slides.length > 0
+        ? raw.slides.map((s: any, idx: number) => {
+            const rawContent = Array.isArray(s.content)
+              ? s.content
+              : (typeof s.content === 'string' ? [s.content] : []);
+            
+            const cleanContent = rawContent
+              .map((item: any) => String(item || '').replace(/#+\s*/g, '').replace(/\*\*/g, '').trim())
+              .filter(Boolean);
+
+            const slideTitle = String(s.title || `Slide ${idx + 1}`).replace(/#+\s*/g, '').replace(/\*\*/g, '').trim();
+            const slideSubtitle = String(s.subtitle || '').replace(/#+\s*/g, '').replace(/\*\*/g, '').trim();
+            const notes = speakerNotesEnabled ? String(s.speakerNotes || s.notes || '').trim() : '';
+
+            const visQuery = String(s.visualQuery || s.visualSuggestion || `${subject} ${topic} ${slideTitle}`)
+              .replace(/[^a-zA-Z0-9\s]/g, ' ')
+              .trim();
+
+            return {
+              slideNumber: idx + 1,
+              type: s.type || (idx === 0 ? 'title' : (idx === raw.slides.length - 1 ? 'summary' : 'concept')),
+              title: slideTitle,
+              subtitle: slideSubtitle,
+              content: cleanContent.length > 0 ? cleanContent : [`Core discussion points for ${slideTitle}`],
+              speakerNotes: notes,
+              visualSuggestion: String(s.visualSuggestion || s.visual || `${slideTitle} diagram`).trim(),
+              visualQuery: visQuery,
+            };
+          })
+        : [];
+
+      // Enforce exact slide count
+      if (normalizedSlides.length > requestedCount) {
+        normalizedSlides = normalizedSlides.slice(0, requestedCount);
+      } else if (normalizedSlides.length < requestedCount) {
+        const diff = requestedCount - normalizedSlides.length;
+        for (let i = 0; i < diff; i++) {
+          const slideNum = normalizedSlides.length + 1;
+          const isFinal = slideNum === requestedCount;
+          normalizedSlides.push({
+            slideNumber: slideNum,
+            type: isFinal ? 'summary' : 'concept',
+            title: isFinal ? `Summary & Key Takeaways` : `${topic} - Focus Area ${slideNum - 1}`,
+            subtitle: isFinal ? `Core lesson review for ${grade}` : `Deep dive into key concepts`,
+            content: isFinal
+              ? [
+                  `Review key definitions and principles of ${topic}.`,
+                  `Apply understanding in upcoming practice activities.`,
+                  `Clarify any remaining questions with the instructor.`
+                ]
+              : [
+                  `Detailed breakdown of ${topic} concept ${slideNum - 1}.`,
+                  `Key observations and real-world relevance.`,
+                  `Guided classroom discussion point.`
+                ],
+            speakerNotes: speakerNotesEnabled ? `Guide students through this slide section and assess understanding.` : '',
+            visualSuggestion: `${topic} classroom visual ${slideNum}`,
+            visualQuery: `${subject} ${topic} educational concept ${slideNum}`,
+          });
+        }
+      }
+
+      // Re-index slide numbers strictly from 1 to requestedCount
+      normalizedSlides = normalizedSlides.map((s, idx) => ({ ...s, slideNumber: idx + 1 }));
 
       return {
         isValid: true,
         normalizedData: {
-          ...raw,
           title,
+          subtitle: raw.subtitle || `${form.presentationPurpose || 'Presentation'} • ${grade} ${subject}`,
           subject,
           grade,
-          slides,
+          topic,
+          visualStyle: form.visualStyle || raw.visualStyle || 'Clean',
+          slideCount: requestedCount,
+          slides: normalizedSlides,
         },
       };
     }

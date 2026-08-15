@@ -4,6 +4,7 @@ import { BottomNav } from './BottomNav';
 import { useAuthStore } from '@/stores/authStore';
 import { LoadingState } from '@/components/common/LoadingState';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { NotificationPrompt } from '@/components/common/NotificationPrompt';
 import { WifiOff } from 'lucide-react';
 
 export function AppLayout() {
@@ -26,6 +27,8 @@ export function AppLayout() {
     <div className="flex min-h-screen">
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+        <NotificationPrompt />
+
         {/* Offline banner */}
         {!isOnline && (
           <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800">

@@ -157,38 +157,68 @@ Return a JSON object with this exact structure:
     }
 
     case "presentation": {
-      const slideCount = Number(form.slideCount) || 6;
-      const visualStyle = form.presentationStyle || "Modern Minimalist";
-      userPrompt = `Generate a slide deck structure with speaker notes for:
+      const slideCount = Math.max(3, Math.min(30, Number(form.slideCount) || 8));
+      const visualStyle = form.visualStyle || form.presentationStyle || "Clean";
+      const purpose = form.presentationPurpose || "Teach a concept";
+      const speakerNotesEnabled = form.presentationSpeakerNotes !== false;
+      const visualSource = form.presentationVisualSource || "Auto";
+      const includesText = Array.isArray(form.presentationIncludes) && form.presentationIncludes.length > 0
+        ? `Requested Slide Sections: ${form.presentationIncludes.join(", ")}`
+        : "";
+
+      userPrompt = `CRITICAL RULE: DO NOT USE ANY PREVIOUS CHAT HISTORY, ASSISTANT MESSAGES, OR UNRELATED TOPICS (such as "Second Brain", productivity, or personal wellness). Generate content EXCLUSIVELY for the current form requirements.
+
+Create a professional, grade-appropriate classroom presentation slide deck:
 Topic: ${topic}
 Subject: ${subject}
-Grade: ${grade}
+Grade Level: ${grade}
 Language: ${language}
-Slide Count: Exactly ${slideCount} slides
+Difficulty Level: ${difficulty}
+Presentation Purpose: ${purpose}
 Visual Style: ${visualStyle}
+Visual Source Preference: ${visualSource}
+Speaker Notes Requested: ${speakerNotesEnabled ? "YES" : "NO"}
+Exact Slide Count: ${slideCount} slides
+${includesText}
 ${instructions}
 
-Return a JSON object with this exact structure:
+STRUCTURE GUIDELINE FOR PURPOSE "${purpose.toUpperCase()}":
+- Slide 1: Title & introduction hook tailored to ${grade} students.
+- Slide 2: Objectives, key questions, or meeting purpose.
+- Slide 3 to ${slideCount - 2}: Core concept breakdown, explanations, step-by-step mechanisms, and grade-appropriate examples.
+- Slide ${slideCount - 1}: Interactive activity, discussion prompt, review questions, or practical application.
+- Slide ${slideCount}: Summary, key takeaways, and conclusion.
+
+Return ONLY a valid JSON object matching this exact structure:
 {
   "title": "${topic}",
+  "subtitle": "${purpose} for ${grade} ${subject}",
   "subject": "${subject}",
   "grade": "${grade}",
+  "topic": "${topic}",
+  "visualStyle": "${visualStyle}",
   "slides": [
     {
       "slideNumber": 1,
       "type": "title",
       "title": "${topic}",
-      "subtitle": "Comprehensive Guide for ${grade}",
+      "subtitle": "Clear educational subtitle",
       "content": [
-        "Welcome & Objectives",
-        "Key Questions We Will Explore"
+        "Key point 1 introduced for ${grade} students",
+        "Key point 2 introducing the lesson focus"
       ],
-      "speakerNotes": "Teacher opening remarks to engage the classroom.",
-      "visualSuggestion": "${topic} banner illustration"
+      "speakerNotes": "${speakerNotesEnabled ? "Teacher opening script: Welcome students and state the core learning goals." : ""}",
+      "visualSuggestion": "Educational illustration of ${topic}",
+      "visualQuery": "${subject} ${topic} educational illustration"
     }
   ]
 }
-Ensure there are EXACTLY ${slideCount} slides in the slides array, covering Intro, Core Mechanisms, Detailed Analysis, Activity, and Conclusion.`;
+
+REQUIREMENTS:
+1. Array 'slides' MUST contain EXACTLY ${slideCount} slide objects (slideNumber 1 through ${slideCount}).
+2. Tone, depth, and vocabulary must strictly fit ${grade} students studying ${subject}.
+3. Every slide must have a unique, highly descriptive 'visualQuery' combining: ${subject} + ${topic} + slide specific concept.
+4. ${speakerNotesEnabled ? "Provide comprehensive teacher-facing speaker notes for EVERY slide." : "Set speakerNotes to empty string ''."}`;
       break;
     }
 

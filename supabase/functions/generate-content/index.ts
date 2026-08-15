@@ -244,13 +244,24 @@ Deno.serve(async (req: Request) => {
 
     // 7. Optional Media Enhancement via Pexels (Non-blocking)
     if (creationType === "presentation" && Array.isArray(normalizedResult.slides)) {
-      // Find up to 3 slides with visual suggestions and attach media
-      for (let i = 0; i < Math.min(normalizedResult.slides.length, 3); i++) {
-        const slide = normalizedResult.slides[i];
-        if (slide.visualSuggestion && !slide.mediaSuggestions) {
-          const media = await searchPexelsMedia(slide.visualSuggestion, "photo", 2);
-          if (media.length > 0) {
-            slide.mediaSuggestions = media;
+      const visualSource = (form.presentationVisualSource || "Auto").toLowerCase();
+      if (visualSource !== "none") {
+        for (let i = 0; i < normalizedResult.slides.length; i++) {
+          const slide = normalizedResult.slides[i];
+          const query = slide.visualQuery || slide.visualSuggestion || `${form.subject} ${form.topic} ${slide.title}`;
+
+          if (visualSource !== "ai") {
+            const media = await searchPexelsMedia(query, "photo", 2);
+            if (media && media.length > 0) {
+              slide.mediaSuggestions = media.map((m: any) => ({
+                ...m,
+                attribution: "Stock (Pexels)",
+              }));
+            } else {
+              slide.needsAiVisual = true;
+            }
+          } else {
+            slide.needsAiVisual = true;
           }
         }
       }

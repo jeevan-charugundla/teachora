@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import {
   BookOpen,
@@ -27,6 +27,8 @@ import { CreationReviewCard } from '../components/CreationReviewCard';
 import { CreationGenerationOverlay } from '../components/CreationGenerationOverlay';
 import { CreationResultEditor } from '../components/CreationResultEditor';
 import { CreationService } from '../services/creationService';
+import { createProject } from '@/services/supabase/projects';
+import { sendGenerationCompletionNotification } from '@/services/notifications/pushService';
 import { useAuthStore } from '@/stores/authStore';
 
 const ICONS_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -90,7 +92,8 @@ const GENERATION_STEPS: Record<CreationType, string[]> = {
 export function CreateStudioPage() {
   const { type: rawType } = useParams<{ type?: string }>();
   const location = useLocation();
-  const { profile } = useAuthStore();
+  const { user, profile } = useAuthStore();
+  const notifiedJobsRef = useRef<Set<string>>(new Set());
 
   // Extract creation type from params or pathname
   const creationType: CreationType = useMemo(() => {
@@ -193,6 +196,41 @@ export function CreateStudioPage() {
       if (res.success && res.data) {
         setPreviewData(res.data);
         setStep('preview');
+
+        // Auto-persist generated material and dispatch Web Push completion notification
+        if (user) {
+          try {
+            const created = await createProject({
+              user_id: user.id,
+              title: res.data?.title || `${meta.title}: ${form.topic}`,
+              type: meta.type as any,
+              project_type: meta.type,
+              subject: form.subject,
+              grade: form.grade,
+              status: 'completed',
+              content: res.data,
+              metadata: {
+                difficulty: form.difficulty,
+                generated_in: 'create_studio',
+              },
+              is_favorite: false,
+            });
+
+            // Idempotency guard against duplicate notifications
+            if (created?.id && !notifiedJobsRef.current.has(created.id)) {
+              notifiedJobsRef.current.add(created.id);
+              sendGenerationCompletionNotification({
+                creationType: form.type,
+                topic: form.topic,
+                grade: form.grade,
+                projectId: created.id,
+                jobId: created.id,
+              });
+            }
+          } catch (saveErr) {
+            console.warn('Auto-save project notice:', saveErr);
+          }
+        }
       } else {
         setGenerationError(res.error || 'Unable to generate material. Please try again.');
       }
