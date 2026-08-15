@@ -9,7 +9,7 @@ const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
 const VAPID_PUBLIC_KEY =
   Deno.env.get("VITE_VAPID_PUBLIC_KEY") ||
   Deno.env.get("VAPID_PUBLIC_KEY") ||
-  "BPJz0kuqzs4iPDltF5yrZCuD70_G7q5SPSfWx6mvIRnRd1pYaDgW6BzhPMDHcAx5i2m0S0xenjckkj7x76elxw4";
+  "BG5JCkkGFecY3XZg7ohM5rd3HVh1by6iyRZQ90X6yBFSS40RRVvl21sNGB0wE6QbAwC0ft0zy-IcGUwUwxwtzQc";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";

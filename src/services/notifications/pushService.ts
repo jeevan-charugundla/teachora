@@ -177,9 +177,32 @@ export async function subscribeToPush(): Promise<{
   }
 
   try {
-    const registration = await registerServiceWorker();
+    const registration = await navigator.serviceWorker.ready;
     if (!registration) {
       return { success: false, permission, error: 'Service worker not active or registered.' };
+    }
+
+    const existingSubscription = await registration.pushManager.getSubscription();
+
+    // Required diagnostic logging
+    console.log('Push diagnostics:', {
+      permission: Notification.permission,
+      serviceWorkerState: registration.active?.state,
+      serviceWorkerScope: registration.scope,
+      serviceWorkerURL: registration.active?.scriptURL,
+      hasExistingSubscription: Boolean(existingSubscription),
+      hasVapidPublicKey: Boolean(import.meta.env.VITE_VAPID_PUBLIC_KEY),
+      vapidPublicKeyLength: import.meta.env.VITE_VAPID_PUBLIC_KEY?.length,
+    });
+
+    // Reuse existing subscription if present
+    if (existingSubscription !== null) {
+      console.log('Reusing existing browser push subscription.');
+      const saveResult = await savePushSubscription(existingSubscription);
+      if (!saveResult.success) {
+        return { success: false, permission, error: saveResult.error };
+      }
+      return { success: true, permission };
     }
 
     const vapidStatus = getVapidConfigStatus();
@@ -188,20 +211,21 @@ export async function subscribeToPush(): Promise<{
     }
 
     const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-    const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+    const convertedVapidPublicKey = urlBase64ToUint8Array(vapidPublicKey);
 
-    // Get existing subscription or request new PushSubscription from browser PushManager
+    // Isolated PushManager.subscribe() execution
     let subscription: PushSubscription | null = null;
     try {
-      subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey as unknown as BufferSource,
-        });
-      }
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidPublicKey as unknown as BufferSource,
+      });
     } catch (pushErr: any) {
-      console.error('PushManager.subscribe error:', pushErr);
+      console.error('PushManager.subscribe failed:', {
+        name: pushErr?.name,
+        message: pushErr?.message,
+        stack: pushErr?.stack,
+      });
       const errName = pushErr?.name || 'PushError';
       const errMsg = pushErr?.message || 'PushManager.subscribe rejected by browser';
       return {
