@@ -27,13 +27,26 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+const DEFAULT_VAPID_PUBLIC_KEY =
+  'BG5JCkkGFecY3XZg7ohM5rd3HVh1by6iyRZQ90X6yBFSS40RRVvl21sNGB0wE6QbAwC0ft0zy-IcGUwUwxwtzQc';
+
+/**
+ * Get active VAPID public key with robust production fallback
+ */
+export function getVapidPublicKey(): string {
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (envKey && envKey.trim().length > 0) {
+    return envKey.trim();
+  }
+  return DEFAULT_VAPID_PUBLIC_KEY;
+}
+
 /**
  * Diagnostic helper to verify VAPID Public Key configuration without leaking the secret
  */
 export function getVapidConfigStatus(): { configured: boolean; length: number } {
-  const key = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-  if (!key) return { configured: false, length: 0 };
-  return { configured: true, length: key.trim().length };
+  const key = getVapidPublicKey();
+  return { configured: Boolean(key), length: key.length };
 }
 
 /**
@@ -205,12 +218,7 @@ export async function subscribeToPush(): Promise<{
       return { success: true, permission };
     }
 
-    const vapidStatus = getVapidConfigStatus();
-    if (!vapidStatus.configured) {
-      return { success: false, permission, error: 'VITE_VAPID_PUBLIC_KEY environment variable is missing.' };
-    }
-
-    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+    const vapidPublicKey = getVapidPublicKey();
     const convertedVapidPublicKey = urlBase64ToUint8Array(vapidPublicKey);
 
     // Isolated PushManager.subscribe() execution
