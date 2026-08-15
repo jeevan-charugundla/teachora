@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import { AuthLayout } from './layouts/AuthLayout';
+import { SplashScreen } from '@/components/common/SplashScreen';
 
 // Auth pages
 import { LoginPage } from '@/features/auth/pages/LoginPage';
@@ -20,6 +21,9 @@ import { AssistantPage } from '@/features/assistant/pages/AssistantPage';
 import { LessonEditorPage } from '@/features/lessons/pages/LessonEditorPage';
 
 export const router = createBrowserRouter([
+  // Root Splash screen route
+  { path: '/', element: <SplashScreen /> },
+
   // Auth Callback route
   { path: '/auth/callback', element: <AuthCallbackPage /> },
 
@@ -60,7 +64,6 @@ export const router = createBrowserRouter([
   { path: '/workspace', element: <Navigate to="/app/workspace" replace /> },
   { path: '/assistant', element: <Navigate to="/app/assistant" replace /> },
 
-  // Default redirect
-  { path: '/', element: <Navigate to="/app" replace /> },
-  { path: '*', element: <Navigate to="/app" replace /> },
+  // Catch-all redirect
+  { path: '*', element: <Navigate to="/" replace /> },
 ]);
