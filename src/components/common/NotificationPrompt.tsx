@@ -2,18 +2,15 @@ import { useState, useEffect } from 'react';
 import {
   Bell,
   BellRing,
-  CheckCircle2,
   AlertCircle,
   X,
   Loader2,
-  Send,
 } from 'lucide-react';
 import {
   isPushSupported,
   getNotificationPermission,
   subscribeToPush,
   getExistingPushSubscription,
-  sendTestNotification,
 } from '@/services/notifications/pushService';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -22,7 +19,6 @@ export function NotificationPrompt() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [hasSubscription, setHasSubscription] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSendingTest, setIsSendingTest] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
@@ -47,53 +43,8 @@ export function NotificationPrompt() {
     checkSubscription();
   }, [user]);
 
-  if (!user || !isPushSupported() || isDismissed) {
+  if (!user || !isPushSupported() || isDismissed || (permission === 'granted' && hasSubscription && !feedbackMsg)) {
     return null;
-  }
-
-  // If already enabled and subscribed, show a compact "Notifications Enabled" badge or hide unless hovered
-  if (permission === 'granted' && hasSubscription && !feedbackMsg) {
-    return (
-      <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-2 flex items-center justify-between text-xs animate-in fade-in">
-        <div className="flex items-center gap-2 text-emerald-700">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span className="font-semibold">Push notifications enabled</span>
-          <span className="hidden sm:inline text-[var(--color-text-tertiary)] font-medium">
-            — You'll be alerted when generated materials are ready.
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={async () => {
-            setIsSendingTest(true);
-            setFeedbackMsg(null);
-            const res = await sendTestNotification();
-            setIsSendingTest(false);
-            if (res.success) {
-              setFeedbackMsg('Test push sent! Check your desktop notifications.');
-              setTimeout(() => setFeedbackMsg(null), 4000);
-            } else {
-              setFeedbackMsg(res.error || 'Failed to send test push.');
-            }
-          }}
-          disabled={isSendingTest}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-primary-50)] text-[11px] font-bold text-[var(--color-text-primary)] transition-colors disabled:opacity-50"
-        >
-          {isSendingTest ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin text-[var(--color-primary-600)]" />
-              <span>Sending test…</span>
-            </>
-          ) : (
-            <>
-              <Send className="h-3 w-3 text-[var(--color-primary-600)]" />
-              <span>Test notification</span>
-            </>
-          )}
-        </button>
-      </div>
-    );
   }
 
   const handleEnableNotifications = async () => {
