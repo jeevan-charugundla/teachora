@@ -31,12 +31,12 @@ const DEFAULT_VAPID_PUBLIC_KEY =
   'BG5JCkkGFecY3XZg7ohM5rd3HVh1by6iyRZQ90X6yBFSS40RRVvl21sNGB0wE6QbAwC0ft0zy-IcGUwUwxwtzQc';
 
 /**
- * Get active VAPID public key with robust production fallback
+ * Get active VAPID public key with validation (must be 86-88 chars for uncompressed P-256)
  */
 export function getVapidPublicKey(): string {
-  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-  if (envKey && envKey.trim().length > 0) {
-    return envKey.trim();
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim();
+  if (envKey && envKey.length >= 86 && envKey.length <= 88) {
+    return envKey;
   }
   return DEFAULT_VAPID_PUBLIC_KEY;
 }
@@ -197,6 +197,8 @@ export async function subscribeToPush(): Promise<{
 
     const existingSubscription = await registration.pushManager.getSubscription();
 
+    const activeVapidPublicKey = getVapidPublicKey();
+
     // Required diagnostic logging
     console.log('Push diagnostics:', {
       permission: Notification.permission,
@@ -204,8 +206,8 @@ export async function subscribeToPush(): Promise<{
       serviceWorkerScope: registration.scope,
       serviceWorkerURL: registration.active?.scriptURL,
       hasExistingSubscription: Boolean(existingSubscription),
-      hasVapidPublicKey: Boolean(import.meta.env.VITE_VAPID_PUBLIC_KEY),
-      vapidPublicKeyLength: import.meta.env.VITE_VAPID_PUBLIC_KEY?.length,
+      hasVapidPublicKey: Boolean(activeVapidPublicKey),
+      vapidPublicKeyLength: activeVapidPublicKey.length,
     });
 
     // Reuse existing subscription if present
